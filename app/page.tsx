@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { LandingCounters, ThemeToggle } from "./landing-client";
 import { formatNumber } from "@/lib/utils";
+import { DEPARTMENTS as FALLBACK_DEPARTMENTS, TOTAL_GRADUATES } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -36,20 +37,35 @@ const MARQUEE = [
 ];
 
 export default async function Landing() {
-  const supabase = await createClient();
+  let stats: { total?: number | null; checked_in?: number | null; photos?: number | null } | null = null;
+  let settings: { status?: string | null; event_date?: string | null; college?: string | null; venue?: string | null; tagline?: string | null } | null = null;
+  let depts: Array<{ code: string; name: string; color: string }> = [];
+  let totals = new Map<string, number>();
 
-  const [{ data: stats }, { data: departments }, { data: settings }] = await Promise.all([
-    supabase.from("event_stats").select("*").maybeSingle(),
-    supabase.from("departments").select("*").order("sort_order"),
-    supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
-  ]);
+  try {
+    const supabase = await createClient();
+    const [{ data: remoteStats }, { data: departments }, { data: remoteSettings }, { data: deptStats }] = await Promise.all([
+      supabase.from("event_stats").select("*").maybeSingle(),
+      supabase.from("departments").select("*").order("sort_order"),
+      supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
+      supabase.from("department_stats").select("*").order("sort_order"),
+    ]);
+    stats = remoteStats;
+    settings = remoteSettings;
+    depts = departments ?? [];
+    totals = new Map(
+      (deptStats ?? [])
+        .filter((d) => Boolean(d.code))
+        .map((d) => [d.code as string, d.total ?? 0]),
+    );
+  } catch {
+    // Keep the public landing page available before Vercel/Supabase env setup.
+    depts = FALLBACK_DEPARTMENTS.map(({ code, name, color }) => ({ code, name, color }));
+    totals = new Map(FALLBACK_DEPARTMENTS.map((d) => [d.code, d.total]));
+    stats = { total: TOTAL_GRADUATES, checked_in: 1519, photos: 1052 };
+  }
 
-  const depts = departments ?? [];
-  const total = stats?.total ?? 0;
-
-  // Per-department totals drive the bar widths in the class list.
-  const { data: deptStats } = await supabase.from("department_stats").select("*").order("sort_order");
-  const totals = new Map((deptStats ?? []).map((d) => [d.code, d.total ?? 0]));
+  const total = stats?.total ?? TOTAL_GRADUATES;
   const topTotal = Math.max(...[...totals.values()], 1);
 
   return (
