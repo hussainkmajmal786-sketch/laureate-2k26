@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Routes reachable without signing in. The TV board is deliberately open. */
-const PUBLIC_ROUTES = ["/", "/login", "/signup", "/display", "/auth"];
+const PUBLIC_ROUTES = ["/", "/login", "/signup", "/display", "/student", "/auth"];
 
 function isPublic(pathname: string) {
   return PUBLIC_ROUTES.some(
@@ -13,13 +13,18 @@ function isPublic(pathname: string) {
 export async function middleware(request: NextRequest) {
   try {
     let response = NextResponse.next({ request });
+    const { pathname } = request.nextUrl;
+
+    // Public pages must remain available even when Supabase is unavailable or
+    // its Vercel environment variables have not been configured yet.
+    if (isPublic(pathname)) {
+      return response;
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey =
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    const { pathname } = request.nextUrl;
 
     if (!supabaseUrl || !supabaseKey) {
       return response;
