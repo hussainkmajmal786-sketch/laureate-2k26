@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Laureate 2K26
 
-## Getting Started
+Graduation-day operations console for the **College of Engineering Kidangoor**.
+Eight stations, one Postgres database, 2,047 graduates moving through a single
+day: registration, stage flow, photo booths, lunch, certificates, plus a public
+queue board and a per-graduate hub reached by scanning a QR pass.
 
-First, run the development server:
+Next.js 15 (App Router) · TypeScript · Tailwind v4 · Supabase · Framer Motion
+
+## Running locally
 
 ```bash
+npm install
+cp .env.example .env.local     # fill in your Supabase URL + publishable key
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Schema, RLS policies and seed data are in [`supabase/migrations/`](supabase/migrations).
+See [`supabase/README.md`](supabase/README.md) for what each migration does and
+the design decisions behind them.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
 
-## Learn More
+## Deploying to Vercel
 
-To learn more about Next.js, take a look at the following resources:
+1. Push to GitHub and import the repo at [vercel.com/new](https://vercel.com/new).
+   The framework preset is detected automatically.
+2. Add both variables under **Settings → Environment Variables**, for
+   Production, Preview *and* Development:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   | Name | Value |
+   | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | your publishable (anon) key |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Deploy.
 
-## Deploy on Vercel
+Both keys are `NEXT_PUBLIC_` and therefore reach the browser — that is expected.
+Row-level security is what protects the data, not key secrecy. **Never** put the
+`service_role` key in this project.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### After the first deploy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Add your Vercel URL to Supabase under **Authentication → URL Configuration**:
+
+- **Site URL** — `https://your-app.vercel.app`
+- **Redirect URLs** — `https://your-app.vercel.app/**`
+
+Without this, sign-in links resolve back to `localhost`.
+
+### Email confirmation
+
+Confirmation is **on** by default, so a volunteer cannot sign in until they click
+a link. For a one-day event where volunteers register at the desk, turn it off:
+**Authentication → Providers → Email → Confirm email**.
+
+## Roles
+
+The **first account to sign up becomes `admin`**. Everyone after starts as
+`viewer` until an admin promotes them. Roles are enforced by row-level security
+in Postgres, so a volunteer without the right role cannot write even by calling
+the API directly.
+
+| Role | Can do |
+| --- | --- |
+| `admin` | Everything, including settings and departments |
+| `registration` | Check-in, student records |
+| `stage` | Stage flow, booth queue |
+| `booth` | Photo booth, queue, gallery |
+| `counter` | Lunch, certificates |
+| `media` | Gallery uploads |
+| `viewer` | Read-only |
+
+## Routes
+
+**Public** — `/` landing, `/login`, `/signup`, `/display` (TV queue board),
+`/student/[id]` (graduate hub, opened by QR).
+
+**Console** (sign-in required) — `/dashboard`, `/registration`, `/stage`,
+`/booth`, `/queue`, `/lunch`, `/certificates`, `/gallery`, `/students`,
+`/volunteers`, `/reports`, `/settings`, `/qr-cards`.
+
+## Not wired up
+
+Honest list of what is interface-only in this build:
+
+- **Camera scanning.** The QR reader resolves register numbers against the live
+  database, but does not open a camera. "Next in queue" pulls a real eligible
+  graduate; manual entry accepts any register number.
+- **Photo storage.** Booth sessions record frame *counts* against a graduate.
+  The image files themselves are not uploaded anywhere.
+- **Google Drive sync** and **file exports** are labelled placeholders.

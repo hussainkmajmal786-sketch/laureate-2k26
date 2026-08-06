@@ -4,15 +4,23 @@
 import * as React from "react";
 import QRCode from "qrcode";
 import Link from "next/link";
-import { Download, ExternalLink, QrCode } from "lucide-react";
+import { Download, ExternalLink, GraduationCap, QrCode, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { deptColor } from "@/components/student-card";
+import { quoteFor } from "@/lib/quotes";
 import type { StudentRow } from "@/lib/supabase/types";
 
 /**
- * Printable invitation pass. The QR encodes a link to the graduate's own
- * ceremony hub, which doubles as the badge every station scans.
+ * Printable invitation pass.
+ *
+ * Layout is a ticket: a coloured masthead keyed to the department, the
+ * graduate's name set large, a personal quote, then the QR on its own
+ * white field with the register number beneath it as the human-readable
+ * fallback for when a camera will not focus.
+ *
+ * The QR encodes a link to that graduate's ceremony hub, which doubles as
+ * the badge every station scans.
  */
 export function StudentQrCard({
   student,
@@ -24,10 +32,16 @@ export function StudentQrCard({
   const [src, setSrc] = React.useState("");
   const path = `/student/${student.id}`;
   const accent = deptColor(student.dept_code);
+  const quote = quoteFor(student.reg_no);
 
   React.useEffect(() => {
     const url = `${window.location.origin}${path}`;
-    QRCode.toDataURL(url, { margin: 1, width: compact ? 150 : 210, errorCorrectionLevel: "M" })
+    QRCode.toDataURL(url, {
+      margin: 1,
+      width: compact ? 160 : 260,
+      errorCorrectionLevel: "M",
+      color: { dark: "#14100e", light: "#ffffff" },
+    })
       .then(setSrc)
       .catch(() => setSrc(""));
   }, [path, compact]);
@@ -41,63 +55,95 @@ export function StudentQrCard({
   };
 
   return (
-    <div className="qr-print-card relative overflow-hidden bg-paper rule-thick drop-2">
-      <div className="pointer-events-none absolute inset-2 border border-pop/40" />
-
-      <div className="flex items-center justify-between rule-b bg-[rgb(var(--ink))] px-3 py-2 text-[rgb(var(--paper))]">
-        <span className="stencil inline-flex items-center gap-2 text-[10px]">
-          <QrCode className="h-4 w-4" /> LAUREATE 2K26
-        </span>
-        <Badge tone="pop" size="sm">INVITATION PASS</Badge>
+    <div className="qr-print-card relative overflow-hidden bg-paper rule-thick drop-3">
+      {/* ── Masthead ─────────────────────────────────────── */}
+      <div className="relative rule-b px-4 py-3" style={{ backgroundColor: accent }}>
+        <div className="flex items-center justify-between">
+          <span className="stencil inline-flex items-center gap-2 text-[10px] text-white">
+            <GraduationCap className="h-4 w-4" strokeWidth={2.6} />
+            LAUREATE 2K26
+          </span>
+          <Badge tone="ink" size="sm">
+            {student.dept_code}
+          </Badge>
+        </div>
+        <p className="stencil mt-1.5 text-[8px] text-white/75">
+          COLLEGE OF ENGINEERING KIDANGOOR
+        </p>
       </div>
 
-      <div className={`relative flex ${compact ? "gap-3 p-3" : "flex-col items-center gap-4 p-6 text-center"}`}>
-        <div className="grid shrink-0 place-items-center border-2 border-[rgb(var(--ink))] bg-white p-2">
+      {/* ── Name ─────────────────────────────────────────── */}
+      <div className="px-5 pt-5 pb-4 text-center">
+        <p className="stencil text-[8.5px] text-ink-3">PRESENTED TO</p>
+        <h2
+          className={`headline mt-2 text-ink text-balance ${compact ? "text-[22px]" : "text-[30px]"}`}
+        >
+          {student.name}
+        </h2>
+        <p className="mt-2 font-mono text-[11.5px] tracking-wider text-ink-2">
+          B.TECH · {student.batch}
+        </p>
+      </div>
+
+      {/* ── Quote ────────────────────────────────────────── */}
+      <div className="relative mx-5 mb-5 bg-paper-2 rule px-4 py-3.5">
+        <Quote
+          className="absolute -top-2 left-3 h-4 w-4 bg-paper-2 text-ink-3"
+          strokeWidth={2.4}
+        />
+        <p className="text-center text-[12.5px] leading-relaxed font-medium text-ink text-pretty">
+          &ldquo;{quote.text}&rdquo;
+        </p>
+        <p className="stencil mt-2 text-center text-[8px] text-ink-3">— {quote.author}</p>
+      </div>
+
+      {/* ── QR ───────────────────────────────────────────── */}
+      <div className="flex flex-col items-center px-5 pb-5">
+        <div className="grid place-items-center rule-thick bg-white p-2.5">
           {src ? (
             <img
               src={src}
               alt={`QR pass for ${student.name}`}
-              className={compact ? "h-[118px] w-[118px]" : "h-[190px] w-[190px]"} />
+              className={compact ? "h-[140px] w-[140px]" : "h-[200px] w-[200px]"}
+            />
           ) : (
             <div
               className={`grid animate-pulse place-items-center bg-paper-3 ${
-                compact ? "h-[118px] w-[118px]" : "h-[190px] w-[190px]"
-              }`} >
+                compact ? "h-[140px] w-[140px]" : "h-[200px] w-[200px]"
+              }`}
+            >
               <QrCode className="h-10 w-10 text-ink-3" />
             </div>
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <p className="stencil text-[9px]" style={{ color: accent }}>
-            COLLEGE OF ENGINEERING KIDANGOOR
-          </p>
-          <h2 className="headline mt-2 text-[24px] text-ink text-balance">{student.name}</h2>
-          <p className="mt-1 font-mono text-[12px] tracking-wider text-ink-2">
-            {student.reg_no} · {student.dept_code}
-          </p>
-          <p className="mt-3 text-[12px] leading-relaxed text-ink-3 text-pretty">
-            Scan this invitation to open your live ceremony hub, photo booth queue and event
-            photographs.
-          </p>
+        {/* Human-readable fallback when a camera won't focus */}
+        <p className="mt-3 font-mono text-[15px] font-medium tracking-[0.18em] text-ink">
+          {student.reg_no}
+        </p>
+        <p className="mt-1.5 max-w-[240px] text-center text-[11px] leading-snug text-ink-3">
+          Scan to open your ceremony hub — stage status, booth queue and every photo of you today.
+        </p>
 
-          {!compact && (
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Button size="sm" onClick={download} disabled={!src}>
-                <Download className="h-3.5 w-3.5" /> DOWNLOAD QR
+        {!compact && (
+          <div className="mt-4 flex w-full flex-wrap justify-center gap-2">
+            <Button size="sm" onClick={download} disabled={!src}>
+              <Download className="h-3.5 w-3.5" strokeWidth={2.6} />
+              DOWNLOAD QR
+            </Button>
+            <Link href={path} target="_blank">
+              <Button size="sm" variant="secondary">
+                <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.6} />
+                OPEN HUB
               </Button>
-              <Link href={path} target="_blank">
-                <Button size="sm" variant="secondary">
-                  <ExternalLink className="h-3.5 w-3.5" /> OPEN HUB
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
+            </Link>
+          </div>
+        )}
       </div>
 
-      <div className="rule-t bg-pop px-4 py-2 text-center">
-        <p className="stencil text-[9px] text-white">
+      {/* ── Footer ───────────────────────────────────────── */}
+      <div className="rule-t bg-[rgb(var(--ink))] px-4 py-2.5 text-center">
+        <p className="stencil text-[8.5px] text-[rgb(var(--paper))]">
           6 AUGUST 2026 · MAIN AUDITORIUM &amp; QUADRANGLE
         </p>
       </div>

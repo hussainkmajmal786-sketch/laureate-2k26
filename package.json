@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:win": "set NEXT_BUILD_WORKERS=1&& next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -33,5 +34,8 @@
     "eslint-config-next": "15.5.22",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

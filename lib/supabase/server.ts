@@ -38,19 +38,29 @@ export async function createClient() {
   );
 }
 
-/** The signed-in volunteer's profile, or null when signed out. */
+/**
+ * The signed-in volunteer's profile, or null when signed out.
+ *
+ * Returns null rather than throwing if Supabase is unreachable or the env
+ * vars are missing — the console layout treats null as "not signed in" and
+ * redirects to /login, which fails closed.
+ */
 export async function getCurrentVolunteer() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
 
-  const { data } = await supabase
-    .from("volunteers")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+    const { data } = await supabase
+      .from("volunteers")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  return data;
+    return data;
+  } catch {
+    return null;
+  }
 }

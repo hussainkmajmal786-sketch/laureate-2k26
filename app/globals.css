@@ -61,7 +61,7 @@
   --paper-3: 236 229 214;      /* deeper inset */
   --ink: 20 16 14;             /* near-black ink */
   --ink-2: 74 65 58;
-  --ink-3: 122 110 100;
+  --ink-3: 110 99 90;
   --rule: 20 16 14;            /* borders are INK, always */
   --rule-soft: 205 195 180;
 
@@ -69,8 +69,20 @@
   --accent-ink: 255 255 255;
   --ok: 16 185 129;
   --warn: 245 158 11;
-  --bad: 239 68 68;
-  --pop: 236 72 153;
+  --bad: 220 38 38;
+  --pop: 219 39 119;
+
+  /*
+   * Fills vs text are different problems. The pigments above are chosen to
+   * look right as solid blocks; used as text on paper they fall as low as
+   * 2.0:1. These darker siblings are what `.text-ok` / `.text-warn` etc.
+   * actually use, so every label clears 4.5:1 without dulling the blocks.
+   */
+  --ok-text: 5 122 85;
+  --warn-text: 138 90 6;
+  --bad-text: 200 30 74;
+  --pop-text: 185 28 102;
+  --accent-text: 37 99 235;
 
   --shadow-ink: 20 16 14;
   --grain: 0.055;
@@ -93,6 +105,14 @@
   --warn: 251 191 36;
   --bad: 248 113 113;
   --pop: 244 114 182;
+
+  /* On dark paper the pigments already read well as text, so text and fill
+     tokens converge — the light theme is where they must diverge. */
+  --ok-text: 52 211 153;
+  --warn-text: 251 191 36;
+  --bad-text: 248 113 113;
+  --pop-text: 244 114 182;
+  --accent-text: 96 165 250;
 
   --shadow-ink: 0 0 0;
   --grain: 0.09;
@@ -148,16 +168,17 @@
   .text-ink { color: rgb(var(--ink)); }
   .text-ink-2 { color: rgb(var(--ink-2)); }
   .text-ink-3 { color: rgb(var(--ink-3)); }
-  .text-accent { color: rgb(var(--accent)); }
+  /* Text uses the darkened siblings; fills keep the full-strength pigment. */
+  .text-accent { color: rgb(var(--accent-text)); }
   .bg-accent { background-color: rgb(var(--accent)); }
   .text-accent-ink { color: rgb(var(--accent-ink)); }
-  .text-ok { color: rgb(var(--ok)); }
+  .text-ok { color: rgb(var(--ok-text)); }
   .bg-ok { background-color: rgb(var(--ok)); }
-  .text-warn { color: rgb(var(--warn)); }
+  .text-warn { color: rgb(var(--warn-text)); }
   .bg-warn { background-color: rgb(var(--warn)); }
-  .text-bad { color: rgb(var(--bad)); }
+  .text-bad { color: rgb(var(--bad-text)); }
   .bg-bad { background-color: rgb(var(--bad)); }
-  .text-pop { color: rgb(var(--pop)); }
+  .text-pop { color: rgb(var(--pop-text)); }
   .bg-pop { background-color: rgb(var(--pop)); }
 
   /* ── The signature: hard ink rules + offset shadows ─────── */
