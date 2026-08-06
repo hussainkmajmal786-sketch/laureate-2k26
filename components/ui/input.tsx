@@ -29,14 +29,12 @@ export function SearchBar({
     <div className={cn("relative", className)}>
       <Search
         className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink"
-        strokeWidth={2.6}
-      />
+        strokeWidth={2.6} />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={cn(FIELD, "stencil pr-14 pl-9 text-[11.5px] placeholder:text-ink-3")}
-      />
+        className={cn(FIELD, "stencil pr-14 pl-9 text-[11.5px] placeholder:text-ink-3")} />
       {shortcut && (
         <kbd className="stencil pointer-events-none absolute top-1/2 right-2 hidden h-6 -translate-y-1/2 items-center rule bg-paper-2 px-1.5 text-[10px] text-ink-2 sm:flex">
           {shortcut}
@@ -65,8 +63,7 @@ export function Select({
         aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={cn(FIELD, "stencil cursor-pointer appearance-none pr-9 text-[11.5px]")}
-      >
+        className={cn(FIELD, "stencil cursor-pointer appearance-none pr-9 text-[11.5px]")} >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -75,8 +72,7 @@ export function Select({
       </select>
       <ChevronDown
         className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-ink"
-        strokeWidth={3}
-      />
+        strokeWidth={3} />
     </div>
   );
 }
@@ -95,23 +91,19 @@ export function Switch({
 }) {
   return (
     <button
-      id={id}
-      type="button"
-      role="switch"
+      id={id} type="button" role="switch"
       aria-checked={checked}
       aria-label={label}
       onClick={() => onChange(!checked)}
       className={cn(
         "tap relative h-7 w-13 shrink-0 rule transition-colors duration-150",
         checked ? "bg-ok" : "bg-paper-3",
-      )}
-    >
+      )} >
       <span
         className={cn(
           "absolute top-0.5 left-0.5 grid h-5 w-5 place-items-center bg-[rgb(var(--ink))] transition-transform duration-150 ease-out",
           checked && "translate-x-6",
-        )}
-      >
+        )} >
         {checked && <Check className="h-3 w-3 text-[rgb(var(--paper))]" strokeWidth={4} />}
       </span>
     </button>
@@ -142,8 +134,7 @@ export function Segmented<T extends string>({
             value === o.value
               ? "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]"
               : "text-ink-2 hover:bg-paper-2 hover:text-ink",
-          )}
-        >
+          )} >
           {o.label}
         </button>
       ))}

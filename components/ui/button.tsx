@@ -16,10 +16,13 @@ const button = cva(
         primary: "bg-accent text-accent-ink drop-2",
         secondary: "bg-paper text-ink drop-2",
         pop: "bg-pop text-white drop-2",
+        soft: "bg-pop text-white drop-2",
         success: "bg-ok text-ink-black drop-2",
         warning: "bg-warn text-ink-black drop-2",
         danger: "bg-bad text-white drop-2",
-        ghost: "border-transparent shadow-none text-ink-2 hover:bg-paper-2 hover:text-ink hover:shadow-none hover:translate-0",
+        glass: "bg-paper text-ink drop-2",
+        ghost:
+          "border-transparent shadow-none text-ink-2 hover:bg-paper-2 hover:text-ink hover:shadow-none hover:translate-0",
         outline: "bg-transparent text-ink drop-1",
       },
       size: {

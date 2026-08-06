@@ -7,8 +7,19 @@ import { cn } from "@/lib/utils";
 import { Sidebar } from "./sidebar";
 import { MobileNav, Topbar } from "./topbar";
 import { BottomNav } from "./bottom-nav";
+import type { VolunteerRow } from "@/lib/supabase/types";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  volunteer,
+  eventStatus,
+  eventMeta,
+}: {
+  children: React.ReactNode;
+  volunteer: VolunteerRow | null;
+  eventStatus: string;
+  eventMeta: string;
+}) {
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const pathname = usePathname();
@@ -22,9 +33,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className={cn(
           "flex min-h-dvh flex-col transition-[padding] duration-200 ease-out",
           collapsed ? "lg:pl-[74px]" : "lg:pl-[248px]",
-        )}
-      >
-        <Topbar onOpenMobileNav={() => setMobileOpen(true)} />
+        )} >
+        <Topbar
+          onOpenMobileNav={() => setMobileOpen(true)}
+          volunteer={volunteer}
+          eventStatus={eventStatus}
+          eventMeta={eventMeta} />
 
         <main className="flex-1 pb-20 lg:pb-0">
           <AnimatePresence mode="wait">
@@ -33,8 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-            >
+              transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }} >
               {children}
             </motion.div>
           </AnimatePresence>
@@ -46,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Standard page frame — consistent gutters and max width across screens. */
 export function Page({
   children,
   className,
@@ -57,8 +71,11 @@ export function Page({
 }) {
   return (
     <div
-      className={cn("mx-auto w-full px-3 py-6 sm:px-5 sm:py-8", wide ? "max-w-[1600px]" : "max-w-[1400px]", className)}
-    >
+      className={cn(
+        "mx-auto w-full px-3 py-6 sm:px-5 sm:py-8",
+        wide ? "max-w-[1600px]" : "max-w-[1400px]",
+        className,
+      )} >
       {children}
     </div>
   );

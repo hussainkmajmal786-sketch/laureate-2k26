@@ -4,15 +4,27 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Check, GraduationCap, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { Bell, Check, GraduationCap, LogOut, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV, NAV_GROUPS } from "@/lib/nav";
-import { EVENT, getStudents } from "@/lib/data";
 import { useTheme } from "@/components/theme-provider";
 import { Avatar } from "@/components/ui/avatar";
-import { LiveBadge } from "@/components/ui/badge";
-import { StudentRow } from "@/components/student-card";
+import { Badge, LiveBadge } from "@/components/ui/badge";
+import { StudentRowItem } from "@/components/student-card";
 import { Modal } from "@/components/ui/feedback";
+import { createClient } from "@/lib/supabase/client";
+import { signOut } from "@/lib/actions";
+import type { StudentRow, VolunteerRow } from "@/lib/supabase/types";
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Event Admin",
+  registration: "Registration",
+  stage: "Stage Coordinator",
+  booth: "Booth Operator",
+  counter: "Counter Staff",
+  media: "Media Runner",
+  viewer: "View Only",
+};
 
 function Clock() {
   const [now, setNow] = React.useState<Date | null>(null);
@@ -27,21 +39,27 @@ function Clock() {
 
   return (
     <div className="stencil hidden h-8 items-center rule bg-[rgb(var(--ink))] px-2 text-[11px] text-[rgb(var(--paper))] md:flex">
-      {now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+      <span>
+        {now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+      </span>
     </div>
   );
 }
 
-const NOTIFICATIONS = [
-  { id: 1, title: "BOOTH 2 QUEUE OVER 20 MIN", body: "Consider redirecting to Booth 1", tone: "warn", time: "2m" },
-  { id: 2, title: "SESSION II STARTED", body: "EEE and Mechanical now on stage", tone: "accent", time: "18m" },
-  { id: 3, title: "412 PHOTOS SYNCED", body: "Booth 1 batch uploaded", tone: "ok", time: "34m" },
-  { id: 4, title: "SHIFT CHANGE AT 14:00", body: "6 volunteers rotating out", tone: "neutral", time: "1h" },
-];
-
-export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
+export function Topbar({
+  onOpenMobileNav,
+  volunteer,
+  eventStatus,
+  eventMeta,
+}: {
+  onOpenMobileNav: () => void;
+  volunteer: VolunteerRow | null;
+  eventStatus: string;
+  eventMeta: string;
+}) {
   const { theme, toggle } = useTheme();
   const [notifOpen, setNotifOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const pathname = usePathname();
   const current = NAV.find((n) => n.href === pathname);
@@ -61,61 +79,52 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
     <>
       <header className="sticky top-0 z-30 flex h-16 items-center gap-2 rule-b bg-paper px-3 sm:px-5">
         <button
-          onClick={onOpenMobileNav}
-          aria-label="Open navigation"
-          className="tap grid h-10 w-10 shrink-0 place-items-center rule bg-paper text-ink lg:hidden"
-        >
-          <Menu className="h-5 w-5" strokeWidth={2.6} />
+          onClick={onOpenMobileNav} aria-label="Open navigation" className="tap grid h-10 w-10 shrink-0 place-items-center rule bg-paper text-ink press-sm lg:hidden" >
+          <Menu className="h-5 w-5" />
         </button>
 
         <div className="min-w-0 flex-1">
-          <h1 className="headline truncate text-[19px] text-ink">{current?.label ?? "LAUREATE 2K26"}</h1>
-          <p className="stencil hidden truncate text-[8.5px] text-ink-3 sm:block">
-            {EVENT.college} · {EVENT.date}
-          </p>
+          <h1 className="truncate headline text-[19px] text-ink">
+            {current?.label ?? "Laureate 2K26"}
+          </h1>
+          <p className="hidden truncate text-[11.5px] text-ink-3 sm:block">{eventMeta}</p>
         </div>
 
         <button
-          onClick={() => setSearchOpen(true)}
-          className="stencil tap hidden h-9 items-center gap-2 rule bg-paper px-2.5 text-[10px] text-ink-2 press-sm sm:flex"
-        >
-          <Search className="h-4 w-4" strokeWidth={2.6} />
-          <span className="hidden lg:inline">SEARCH</span>
-          <kbd className="ml-1 hidden bg-paper-3 px-1 text-[9px] lg:inline">⌘K</kbd>
+          onClick={() => setSearchOpen(true)} className="tap hidden h-9 items-center gap-2 stencil rule bg-paper pr-2 pl-2.5 text-[10px] text-ink-2 press-sm sm:flex" >
+          <Search className="h-4 w-4" />
+          <span className="hidden lg:inline">Search graduates…</span>
+          <kbd className="ml-1 hidden bg-paper-3 px-1 text-[9px] lg:inline">
+            ⌘K
+          </kbd>
         </button>
 
         <Clock />
 
         <div className="hidden lg:block">
-          <LiveBadge label={EVENT.status.toUpperCase()} />
+          <LiveBadge label={eventStatus} />
         </div>
 
         <button
-          onClick={toggle}
-          aria-label="Toggle theme"
-          className="tap relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rule bg-paper text-ink press-sm"
-        >
+          onClick={toggle} aria-label="Toggle theme" className="tap relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rule bg-paper text-ink press-sm" >
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
               key={theme}
-              initial={{ y: 16, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -16, opacity: 0 }}
-              transition={{ duration: 0.18 }}
-            >
-              {theme === "dark" ? <Sun className="h-[18px] w-[18px]" strokeWidth={2.6} /> : <Moon className="h-[18px] w-[18px]" strokeWidth={2.6} />}
+              initial={{ y: 14, opacity: 0, rotate: -30 }}
+              animate={{ y: 0, opacity: 1, rotate: 0 }}
+              exit={{ y: -14, opacity: 0, rotate: 30 }}
+              transition={{ duration: 0.22 }} >
+              {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
             </motion.span>
           </AnimatePresence>
         </button>
 
+        {/* Notifications */}
         <div className="relative">
           <button
-            onClick={() => setNotifOpen((o) => !o)}
-            aria-label="Notifications"
-            className="tap relative grid h-10 w-10 shrink-0 place-items-center rule bg-paper text-ink press-sm"
-          >
-            <Bell className="h-[18px] w-[18px]" strokeWidth={2.6} />
-            <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rule bg-pop" />
+            onClick={() => setNotifOpen((o) => !o)} aria-label="Notifications" className="tap relative grid h-10 w-10 shrink-0 place-items-center rule bg-paper text-ink press-sm" >
+            <Bell className="h-[18px] w-[18px]" />
+            <span className="absolute top-2 right-2.5 h-2 w-2  bg-bad ring-2 ring-[rgb(var(--paper))]" />
           </button>
 
           <AnimatePresence>
@@ -123,33 +132,29 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ type: "spring", stiffness: 460, damping: 32 }}
-                  className="absolute right-0 z-50 mt-2 w-[320px] origin-top-right bg-paper rule-thick drop-3"
-                >
-                  <div className="flex items-center justify-between rule-b bg-pop px-3 py-2">
-                    <p className="stencil text-[10.5px] text-white">NOTIFICATIONS</p>
-                    <button className="stencil text-[9.5px] text-white/80 hover:text-white">CLEAR ALL</button>
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }} className="absolute right-0 z-50 mt-2 w-[320px] origin-top-right bg-paper rule-thick drop-3" >
+                  <div className="flex items-center justify-between rule-b px-4 py-3">
+                    <p className="text-[13.5px] font-semibold text-ink">Notifications</p>
+                    <button className="text-[12px] font-medium text-accent hover:underline">
+                      Mark all read
+                    </button>
                   </div>
-                  <ul className="max-h-[360px] overflow-y-auto">
-                    {NOTIFICATIONS.map((n) => (
-                      <li key={n.id} className="flex gap-2.5 not-last:rule-b px-3 py-2.5 hover:bg-paper-2">
-                        <span
-                          className={cn(
-                            "mt-1 h-2.5 w-2.5 shrink-0",
-                            n.tone === "warn" && "bg-warn",
-                            n.tone === "ok" && "bg-ok",
-                            n.tone === "accent" && "bg-accent",
-                            n.tone === "neutral" && "bg-[rgb(var(--ink-3))]",
-                          )}
-                        />
+                  <ul className="max-h-[360px] divide-y-2 divide-[rgb(var(--rule))] overflow-y-auto">
+                    {[
+                      { id: 1, t: "Booth 2 queue exceeded 20 min", b: "Consider redirecting to Booth 1", tone: "bg-warn", time: "2m" },
+                      { id: 2, t: "Session II conferral started", b: "EEE and Mechanical now on stage", tone: "bg-accent", time: "18m" },
+                      { id: 3, t: "412 photos synced", b: "Booth 1 batch uploaded", tone: "bg-ok", time: "34m" },
+                    ].map((n) => (
+                      <li key={n.id} className="flex gap-3 px-4 py-3 transition-colors hover:bg-paper-2">
+                        <span className={cn("mt-1.5 h-2 w-2 shrink-0 ", n.tone)} />
                         <div className="min-w-0 flex-1">
-                          <p className="stencil text-[9.5px] text-ink">{n.title}</p>
-                          <p className="mt-0.5 text-[11.5px] leading-snug text-ink-3">{n.body}</p>
+                          <p className="text-[13px] font-medium text-ink">{n.t}</p>
+                          <p className="mt-0.5 text-[12px] leading-snug text-ink-3">{n.b}</p>
                         </div>
-                        <span className="stencil shrink-0 text-[9px] text-ink-3">{n.time}</span>
+                        <span className="shrink-0 text-[11px] text-ink-3">{n.time}</span>
                       </li>
                     ))}
                   </ul>
@@ -159,13 +164,49 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           </AnimatePresence>
         </div>
 
-        <button className="tap flex shrink-0 items-center gap-2 rule bg-paper p-0.5 pr-0 press-sm sm:pr-2.5">
-          <Avatar name="Ajmal Hussain" hue={0} size="sm" ring={false} />
-          <span className="hidden text-left sm:block">
-            <span className="block text-[12px] leading-tight font-bold text-ink">Ajmal Hussain</span>
-            <span className="stencil block text-[8.5px] text-ink-3">EVENT ADMIN</span>
-          </span>
-        </button>
+        {/* Profile */}
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen((o) => !o)} className="tap flex shrink-0 items-center gap-2.5 rule bg-paper p-0.5 pr-0 press-sm sm:pr-3" >
+            <Avatar name={volunteer?.name ?? "Guest"} hue={volunteer?.hue ?? 220} size="sm" ring={false} />
+            <span className="hidden text-left sm:block">
+              <span className="block text-[13px] leading-tight font-semibold text-ink">
+                {volunteer?.name ?? "Signed out"}
+              </span>
+              <span className="block text-[11px] text-ink-3">
+                {ROLE_LABEL[volunteer?.role ?? "viewer"]}
+              </span>
+            </span>
+          </button>
+
+          <AnimatePresence>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }} className="absolute right-0 z-50 mt-2 w-64 origin-top-right bg-paper rule-thick drop-3" >
+                  <div className="rule-b p-4">
+                    <p className="text-[14px] font-semibold text-ink">{volunteer?.name}</p>
+                    <p className="mt-0.5 truncate text-[12px] text-ink-3">{volunteer?.email}</p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <Badge tone="accent" size="sm">{ROLE_LABEL[volunteer?.role ?? "viewer"]}</Badge>
+                      {volunteer?.station && <Badge tone="neutral" size="sm">{volunteer.station}</Badge>}
+                    </div>
+                  </div>
+                  <form action={signOut}>
+                    <button type="submit" className="tap flex w-full items-center gap-2.5 px-4 py-3 text-left text-[13.5px] font-medium text-bad transition-colors hover:bg-bad-soft" >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
+                  </form>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
       <CommandSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
@@ -173,17 +214,32 @@ export function Topbar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   );
 }
 
+/** ⌘K palette — live graduate search plus page jumps. */
 function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [q, setQ] = React.useState("");
-  const students = React.useMemo(() => getStudents(), []);
+  const [results, setResults] = React.useState<StudentRow[]>([]);
+  const supabase = React.useMemo(() => createClient(), []);
 
-  const results = React.useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return [];
-    return students
-      .filter((s) => s.name.toLowerCase().includes(term) || s.regNo.toLowerCase().includes(term))
-      .slice(0, 6);
-  }, [q, students]);
+  React.useEffect(() => {
+    if (!open) { setQ(""); setResults([]); }
+  }, [open]);
+
+  // Debounced so typing does not fire a query per keystroke.
+  React.useEffect(() => {
+    const term = q.trim();
+    if (!term) { setResults([]); return; }
+
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from("students")
+        .select("*")
+        .or(`name.ilike.%${term}%,reg_no.ilike.%${term}%`)
+        .limit(6);
+      setResults(data ?? []);
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [q, supabase]);
 
   const pages = React.useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -191,40 +247,31 @@ function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }
     return NAV.filter((n) => n.label.toLowerCase().includes(term)).slice(0, 4);
   }, [q]);
 
-  React.useEffect(() => {
-    if (!open) setQ("");
-  }, [open]);
-
   return (
-    <Modal open={open} onClose={onClose} title="SEARCH" size="md">
-      <div>
+    <Modal open={open} onClose={onClose} title="Search" size="md">
+      <div className="-mx-2">
         <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink" strokeWidth={2.6} />
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-ink-3" />
           <input
             autoFocus
             value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="NAME, REGISTER NUMBER, OR PAGE…"
-            className="stencil h-12 w-full rule bg-paper pr-3 pl-9 text-[11px] text-ink outline-none placeholder:text-ink-3 focus:drop-2"
-          />
+            onChange={(e) => setQ(e.target.value)} placeholder="Name, register number, or page…" className="h-12 w-full  bg-paper-2 pr-4 pl-10 text-sm text-ink rule outline-none placeholder:text-ink-3 focus:ring-2 focus:ring-[rgb(var(--accent))]" />
         </div>
 
         <div className="mt-4 max-h-[320px] overflow-y-auto">
           {pages.length > 0 && (
             <div className="mb-3">
-              <p className="stencil mb-1 text-[9px] text-ink-3">PAGES</p>
+              <p className="stencil mb-1 px-2 text-ink-3">Pages</p>
               {pages.map((p) => (
                 <Link
                   key={p.href}
                   href={p.href}
-                  onClick={onClose}
-                  className="tap flex items-center gap-2.5 px-1.5 py-2 hover:bg-paper-2"
-                >
-                  <span className="grid h-7 w-7 place-items-center rule bg-paper-2 text-ink">
-                    <p.icon className="h-3.5 w-3.5" strokeWidth={2.4} />
+                  onClick={onClose} className="tap flex items-center gap-3  px-2 py-2.5 transition-colors hover:bg-paper-2" >
+                  <span className="grid h-8 w-8 place-items-center  bg-paper-2 text-ink-2 rule">
+                    <p.icon className="h-4 w-4" />
                   </span>
-                  <span className="text-[13px] font-bold text-ink">{p.label}</span>
-                  <span className="stencil ml-auto text-[9px] text-ink-3">{p.group}</span>
+                  <span className="text-[13.5px] font-medium text-ink">{p.label}</span>
+                  <span className="ml-auto text-[11.5px] text-ink-3">{p.group}</span>
                 </Link>
               ))}
             </div>
@@ -232,15 +279,15 @@ function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }
 
           {results.length > 0 && (
             <div>
-              <p className="stencil mb-1 text-[9px] text-ink-3">GRADUATES</p>
+              <p className="stencil mb-1 px-2 text-ink-3">Graduates</p>
               {results.map((s) => (
-                <StudentRow key={s.id} student={s} meta={s.deptName} onClick={onClose} />
+                <StudentRowItem key={s.id} student={s} meta={s.dept_code} onClick={onClose} />
               ))}
             </div>
           )}
 
           {q && results.length === 0 && pages.length === 0 && (
-            <p className="stencil px-2 py-8 text-center text-[11px] text-ink-3">NO MATCHES</p>
+            <p className="px-2 py-8 text-center text-[13px] text-ink-3">No matches for “{q}”</p>
           )}
         </div>
       </div>
@@ -248,6 +295,7 @@ function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }
   );
 }
 
+/** Slide-over navigation for tablet and phone. */
 export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
 
@@ -264,42 +312,35 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="halftone absolute inset-0 bg-[rgb(var(--ink))]/60"
-          />
+            onClick={onClose} className="absolute inset-0 halftone bg-[rgb(var(--ink))]/60" />
           <motion.nav
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
-            transition={{ type: "spring", stiffness: 460, damping: 40 }}
-            className="absolute inset-y-0 left-0 flex w-[270px] flex-col rule-r bg-paper"
-          >
-            <div className="flex h-16 items-center justify-between rule-b bg-[rgb(var(--ink))] px-4 text-[rgb(var(--paper))]">
-              <div className="flex items-center gap-2.5">
-                <span className="grid h-9 w-9 place-items-center bg-pop">
-                  <GraduationCap className="h-5 w-5 text-white" strokeWidth={2.6} />
+            transition={{ type: "spring", stiffness: 400, damping: 38 }} className="absolute inset-y-0 left-0 flex w-[270px] flex-col rule-r bg-paper" >
+            <div className="flex h-16 items-center justify-between px-5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center  bg-pop">
+                  <GraduationCap className="h-[19px] w-[19px] text-white" strokeWidth={2.1} />
                 </span>
                 <div>
-                  <p className="headline text-[17px] leading-none">
-                    LAUREATE <span className="text-pop">2K26</span>
+                  <p className="text-[15px] leading-tight font-bold tracking-[-0.025em] text-ink">
+                    Laureate 2K26
                   </p>
-                  <p className="stencil mt-1 text-[8.5px] opacity-60">CEK KIDANGOOR</p>
+                  <p className="text-[11.5px] text-ink-3">CEK Kidangoor</p>
                 </div>
               </div>
               <button
-                onClick={onClose}
-                aria-label="Close navigation"
-                className="tap grid h-8 w-8 place-items-center border-2 border-[rgb(var(--paper))]"
-              >
-                <X className="h-4 w-4" strokeWidth={3} />
+                onClick={onClose} aria-label="Close navigation" className="tap grid h-9 w-9 place-items-center  text-ink-3 hover:bg-paper-2" >
+                <X className="h-4.5 w-4.5" />
               </button>
             </div>
 
-            <div className="no-scrollbar flex-1 overflow-y-auto py-3">
+            <div className="no-scrollbar flex-1 overflow-y-auto px-3 pb-6">
               {NAV_GROUPS.map((group) => (
-                <div key={group} className="mb-4">
-                  <p className="stencil mb-1.5 px-4 text-[8.5px] text-ink-3">{group}</p>
-                  <ul>
+                <div key={group} className="mb-5">
+                  <p className="stencil mb-1.5 px-3 text-ink-3">{group}</p>
+                  <ul className="space-y-0.5">
                     {NAV.filter((n) => n.group === group).map((item) => {
                       const active = pathname === item.href;
                       return (
@@ -307,15 +348,14 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
                           <Link
                             href={item.href}
                             className={cn(
-                              "tap mx-2 flex items-center gap-2.5 px-2.5 py-3 text-[13px] font-bold transition-colors",
+                              "tap flex items-center gap-3  px-3 py-3 text-sm font-medium transition-colors",
                               active
                                 ? "rule bg-[rgb(var(--ink))] text-[rgb(var(--paper))]"
                                 : "text-ink-2 hover:bg-paper-2 hover:text-ink",
-                            )}
-                          >
-                            <item.icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.8 : 2.2} />
+                            )} >
+                            <item.icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.3 : 2} />
                             <span className="flex-1">{item.label}</span>
-                            {active && <Check className="h-4 w-4" strokeWidth={3} />}
+                            {active && <Check className="h-4 w-4" />}
                           </Link>
                         </li>
                       );

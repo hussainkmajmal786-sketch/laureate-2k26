@@ -2,31 +2,29 @@
 
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { cn, relativeTime, hueFrom } from "@/lib/utils";
-import type { Activity, TimelineItem } from "@/lib/data";
+import { cn, hueFrom } from "@/lib/utils";
+import type { RecentActivity, TimelineRow } from "@/lib/supabase/types";
 import { Avatar } from "./ui/avatar";
 
 /** Event schedule as a printed itinerary — square nodes on a thick rule. */
-export function Timeline({ items }: { items: TimelineItem[] }) {
+export function Timeline({ items }: { items: TimelineRow[] }) {
   return (
     <ol className="relative">
       {items.map((item, i) => {
         const last = i === items.length - 1;
         return (
           <motion.li
-            key={item.time}
+            key={item.id}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.04, duration: 0.35 }}
-            className="relative flex gap-3.5 pb-4 last:pb-0"
-          >
+            className="relative flex gap-3.5 pb-4 last:pb-0" >
             {!last && (
               <span
                 className={cn(
                   "absolute top-7 left-[13px] h-[calc(100%-1.25rem)] w-[3px]",
                   item.status === "done" ? "bg-ok" : "bg-[rgb(var(--rule-soft))]",
-                )}
-              />
+                )} />
             )}
 
             <span className="relative z-10 shrink-0">
@@ -51,11 +49,10 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
                   className={cn(
                     "text-[13px] leading-tight font-bold",
                     item.status === "upcoming" ? "text-ink-3" : "text-ink",
-                  )}
-                >
+                  )} >
                   {item.title}
                 </p>
-                <span className="stencil text-[10px] text-ink-3">{item.time}</span>
+                <span className="stencil text-[10px] text-ink-3">{item.time_label}</span>
                 {item.status === "active" && (
                   <span className="stencil bg-pop px-1 text-[9px] text-white">NOW</span>
                 )}
@@ -69,38 +66,59 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
   );
 }
 
-const TONE_BLOCK: Record<string, string> = {
-  accent: "bg-accent",
-  ok: "bg-ok",
-  warn: "bg-warn",
-  neutral: "bg-[rgb(var(--ink-3))]",
+const KIND_LABEL: Record<string, { verb: string; tone: string }> = {
+  "check-in": { verb: "checked in", tone: "bg-ok" },
+  stage: { verb: "crossed the stage", tone: "bg-accent" },
+  "booth-assign": { verb: "joined a booth queue", tone: "bg-pop" },
+  "booth-complete": { verb: "completed their booth session", tone: "bg-accent" },
+  lunch: { verb: "redeemed lunch", tone: "bg-warn" },
+  certificate: { verb: "collected their certificate", tone: "bg-ok" },
 };
 
-export function ActivityFeed({ items, showAvatar = true }: { items: Activity[]; showAvatar?: boolean }) {
+/** Live feed built from the scan audit log. */
+export function ActivityFeed({
+  items,
+  showAvatar = true,
+}: {
+  items: RecentActivity[];
+  showAvatar?: boolean;
+}) {
   return (
     <ul>
-      {items.map((a, i) => (
-        <motion.li
-          key={a.id}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.03, duration: 0.3 }}
-          className="flex items-start gap-2.5 py-2.5 not-last:rule-b"
-        >
-          {showAvatar ? (
-            <Avatar name={a.actor} hue={hueFrom(a.actor)} size="xs" />
-          ) : (
-            <span className={cn("mt-1.5 h-2 w-2 shrink-0", TONE_BLOCK[a.tone])} />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-[12.5px] leading-snug text-ink-2">
-              <span className="font-bold text-ink">{a.actor}</span> {a.action}{" "}
-              <span className="font-bold text-ink">{a.subject}</span>
-            </p>
-            <p className="stencil mt-0.5 text-[9.5px] text-ink-3">{relativeTime(a.minutesAgo)}</p>
-          </div>
-        </motion.li>
-      ))}
+      {items.map((a, i) => {
+        const meta = KIND_LABEL[a.kind ?? ""] ?? { verb: a.kind ?? "acted", tone: "bg-[rgb(var(--ink-3))]" };
+        return (
+          <motion.li
+            key={a.id ?? i}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.03, duration: 0.3 }}
+            className="flex items-start gap-2.5 py-2.5 not-last:rule-b" >
+            {showAvatar ? (
+              <Avatar
+                name={a.student_name ?? "?"}
+                hue={a.student_hue ?? hueFrom(a.student_name ?? "")} size="xs" />
+            ) : (
+              <span className={cn("mt-1.5 h-2 w-2 shrink-0", meta.tone)} />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-[12.5px] leading-snug text-ink-2">
+                <span className="font-bold text-ink">{a.student_name}</span> {meta.verb}
+                {a.detail && <span className="text-ink-3"> · {a.detail}</span>}
+              </p>
+              <p className="stencil mt-0.5 text-[9.5px] text-ink-3">
+                {a.volunteer_name ? `${a.volunteer_name} · ` : ""}
+                {a.created_at
+                  ? new Date(a.created_at).toLocaleTimeString("en-GB", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
+              </p>
+            </div>
+          </motion.li>
+        );
+      })}
     </ul>
   );
 }
@@ -116,8 +134,7 @@ export function ProgressSteps({ steps, current }: { steps: string[]; current: nu
               initial={{ width: 0 }}
               animate={{ width: i < current ? "100%" : i === current ? "55%" : "0%" }}
               transition={{ duration: 0.5, ease: [0.2, 0, 0, 1] }}
-              className={cn("h-full", i <= current ? "bg-pop" : "")}
-            />
+              className={cn("h-full", i <= current ? "bg-pop" : "")} />
           </div>
           <p className={cn("stencil mt-1.5 truncate text-[9px]", i <= current ? "text-ink" : "text-ink-3")}>
             {s}

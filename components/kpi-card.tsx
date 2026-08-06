@@ -2,8 +2,37 @@
 
 import * as React from "react";
 import { motion, useInView, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { ArrowDown, ArrowUp, type LucideIcon } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Award,
+  Camera,
+  GraduationCap,
+  Hourglass,
+  ScrollText,
+  UserCheck,
+  Users,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
+
+/**
+ * Icons are looked up by name rather than passed as props — a Server
+ * Component cannot hand a function to a Client Component.
+ */
+export const KPI_ICONS = {
+  GraduationCap,
+  UserCheck,
+  Hourglass,
+  Award,
+  Camera,
+  Users,
+  UtensilsCrossed,
+  ScrollText,
+} satisfies Record<string, LucideIcon>;
+
+export type KpiIconName = keyof typeof KPI_ICONS;
 
 export function CountUp({
   value,
@@ -31,13 +60,17 @@ export function CountUp({
   );
 }
 
-const TONE: Record<string, { block: string; bar: string }> = {
-  accent: { block: "bg-accent text-accent-ink", bar: "bg-accent" },
-  ok: { block: "bg-ok text-ink-black", bar: "bg-ok" },
-  warn: { block: "bg-warn text-ink-black", bar: "bg-warn" },
-  bad: { block: "bg-bad text-white", bar: "bg-bad" },
-  pop: { block: "bg-pop text-white", bar: "bg-pop" },
-  neutral: { block: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]", bar: "bg-[rgb(var(--ink))]" },
+const TONE: Record<string, { block: string; bar: string; text: string }> = {
+  accent: { block: "bg-accent text-accent-ink", bar: "bg-accent", text: "text-accent" },
+  ok: { block: "bg-ok text-ink-black", bar: "bg-ok", text: "text-ok" },
+  warn: { block: "bg-warn text-ink-black", bar: "bg-warn", text: "text-warn" },
+  bad: { block: "bg-bad text-white", bar: "bg-bad", text: "text-bad" },
+  pop: { block: "bg-pop text-white", bar: "bg-pop", text: "text-pop" },
+  neutral: {
+    block: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
+    bar: "bg-[rgb(var(--ink))]",
+    text: "text-ink",
+  },
 };
 
 /**
@@ -50,35 +83,39 @@ export function KpiCard({
   total,
   delta,
   tone = "neutral",
-  icon: Icon,
+  icon,
   hint,
   index = 0,
 }: {
   label: string;
   value: number;
-  total?: number;
+  total?: number | null;
   delta?: number;
   tone?: "accent" | "ok" | "warn" | "bad" | "pop" | "neutral";
-  icon: LucideIcon;
+  icon: KpiIconName;
   hint?: string;
   index?: number;
 }) {
   const pct = total ? Math.round((value / total) * 100) : null;
   const t = TONE[tone];
+  const Icon = KPI_ICONS[icon];
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.4, ease: [0.2, 0, 0, 1] }}
-      className="press relative bg-paper rule drop-2"
-    >
+      className="press relative bg-paper rule drop-2" >
       {/* Colour tab */}
       <div className={cn("flex items-center justify-between rule-b px-3 py-2", t.block)}>
         <Icon className="h-4 w-4" strokeWidth={2.6} />
         {delta !== undefined && delta !== 0 && (
           <span className="stencil inline-flex items-center gap-0.5 text-[10px]">
-            {delta > 0 ? <ArrowUp className="h-3 w-3" strokeWidth={3.5} /> : <ArrowDown className="h-3 w-3" strokeWidth={3.5} />}
+            {delta > 0 ? (
+              <ArrowUp className="h-3 w-3" strokeWidth={3.5} />
+            ) : (
+              <ArrowDown className="h-3 w-3" strokeWidth={3.5} />
+            )}
             {Math.abs(delta)}%
           </span>
         )}
@@ -99,8 +136,7 @@ export function KpiCard({
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ delay: 0.25 + index * 0.04, duration: 0.7, ease: [0.2, 0, 0, 1] }}
-              className={cn("h-full", t.bar)}
-            />
+              className={cn("h-full", t.bar)} />
           </div>
         )}
       </div>
@@ -120,19 +156,10 @@ export function StatTile({
   sub?: string;
   tone?: "accent" | "ok" | "warn" | "bad" | "pop" | "neutral";
 }) {
-  const color = {
-    accent: "text-accent",
-    ok: "text-ok",
-    warn: "text-warn",
-    bad: "text-bad",
-    pop: "text-pop",
-    neutral: "text-ink",
-  }[tone];
-
   return (
     <div className="bg-paper rule drop-1 px-3.5 py-3">
       <p className="stencil text-[9.5px] text-ink-3">{label}</p>
-      <p className={cn("figure mt-1.5 text-[26px] leading-none", color)}>
+      <p className={cn("figure mt-1.5 text-[26px] leading-none", TONE[tone].text)}>
         {typeof value === "number" ? formatNumber(value) : value}
       </p>
       {sub && <p className="mt-1.5 text-[11.5px] leading-snug text-ink-3">{sub}</p>}

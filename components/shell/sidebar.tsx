@@ -15,16 +15,13 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
       className={cn(
         "fixed inset-y-0 left-0 z-40 hidden shrink-0 flex-col rule-r bg-paper transition-[width] duration-200 ease-out lg:flex",
         collapsed ? "w-[74px]" : "w-[248px]",
-      )}
-    >
+      )} >
       {/* Brand block */}
-      <Link
-        href="/"
+      <Link href="/dashboard"
         className={cn(
           "tap flex h-16 items-center gap-2.5 rule-b bg-[rgb(var(--ink))] px-4 text-[rgb(var(--paper))]",
           collapsed && "justify-center px-0",
-        )}
-      >
+        )} >
         <span className="grid h-9 w-9 shrink-0 place-items-center bg-pop">
           <GraduationCap className="h-5 w-5 text-white" strokeWidth={2.6} />
         </span>
@@ -61,19 +58,17 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
                         className={cn(
                           "tap relative mx-2 flex items-center gap-2.5 px-2.5 py-2.5 text-[12.5px] font-bold transition-colors",
                           collapsed && "justify-center px-0",
-                          active
-                            ? "text-[rgb(var(--paper))]"
-                            : "text-ink-2 hover:bg-paper-2 hover:text-ink",
-                        )}
-                      >
+                          active ? "text-[rgb(var(--paper))]" : "text-ink-2 hover:bg-paper-2 hover:text-ink",
+                        )} >
                         {active && (
                           <motion.span
                             layoutId="nav-active"
                             transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                            className="absolute inset-0 rule bg-[rgb(var(--ink))]"
-                          />
+                            className="absolute inset-0 rule bg-[rgb(var(--ink))]" />
                         )}
-                        <Icon className="relative z-10 h-[17px] w-[17px] shrink-0" strokeWidth={active ? 2.8 : 2.2} />
+                        <Icon
+                          className="relative z-10 h-[17px] w-[17px] shrink-0"
+                          strokeWidth={active ? 2.8 : 2.2} />
                         {!collapsed && (
                           <>
                             <span className="relative z-10 flex-1 truncate">{item.label}</span>
@@ -82,8 +77,7 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
                                 className={cn(
                                   "stencil relative z-10 px-1 py-0.5 text-[9px]",
                                   active ? "bg-pop text-white" : "bg-paper-3 text-ink-2",
-                                )}
-                              >
+                                )} >
                                 {item.badge}
                               </span>
                             )}
@@ -107,9 +101,15 @@ export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle:
         className={cn(
           "stencil tap flex w-full items-center gap-2.5 rule-t px-4 py-3 text-[10px] text-ink-3 transition-colors hover:bg-paper-2 hover:text-ink",
           collapsed && "justify-center px-0",
+        )} >
+        {collapsed ? (
+          <PanelLeftOpen className="h-4 w-4" />
+        ) : (
+          <>
+            <PanelLeftClose className="h-4 w-4" />
+            COLLAPSE
+          </>
         )}
-      >
-        {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" />COLLAPSE</>}
       </button>
     </aside>
   );

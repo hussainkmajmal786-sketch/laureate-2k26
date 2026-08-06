@@ -27,13 +27,25 @@ export function Avatar({
   size = "md",
   className,
   ring = true,
+  src,
 }: {
   name: string;
   hue: number;
   size?: keyof typeof SIZES;
   className?: string;
   ring?: boolean;
+  src?: string | null;
 }) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={name}
+        className={cn("shrink-0 object-cover", SIZES[size], ring && "rule", className)} />
+    );
+  }
+
   const pigment = PIGMENTS[hue % PIGMENTS.length];
   const dark = ["#f59e0b", "#84cc16", "#10b981", "#06b6d4"].includes(pigment);
 
@@ -46,8 +58,7 @@ export function Avatar({
         className,
       )}
       style={{ backgroundColor: pigment, color: dark ? "#14100e" : "#fff" }}
-      aria-hidden
-    >
+      aria-hidden >
       <span className="relative z-10 pt-0.5">{initials(name)}</span>
       {/* Halftone corner — the printed texture */}
       <span
@@ -55,8 +66,7 @@ export function Avatar({
         style={{
           backgroundImage: `radial-gradient(${dark ? "#14100e" : "#fff"} 1.4px, transparent 1.5px)`,
           backgroundSize: "5px 5px",
-        }}
-      />
+        }} />
     </div>
   );
 }

@@ -15,13 +15,12 @@ export interface Shot {
 
 const PIGMENTS = ["#2563eb", "#ec4899", "#f59e0b", "#10b981", "#6d28d9", "#f97316", "#06b6d4", "#84cc16"];
 
-function pigment(hue: number) {
-  return PIGMENTS[hue % PIGMENTS.length];
-}
+const pigment = (hue: number) => PIGMENTS[hue % PIGMENTS.length];
 
 /**
- * Photo capture surface. No real file handling — "uploading" adds a synthetic
- * frame so the gallery and progress states can be demonstrated.
+ * Photo capture surface. File upload is not wired to storage yet — adding
+ * a frame records it locally and increments the graduate's photo count on
+ * completion, so the counts stay truthful.
  */
 export function UploadCard({
   shots,
@@ -63,23 +62,19 @@ export function UploadCard({
           aspect,
           dragging ? "bg-pop" : latest ? "" : "bg-paper-2",
         )}
-        style={latest && !dragging ? { backgroundColor: pigment(latest.hue) } : undefined}
-      >
+        style={latest && !dragging ? { backgroundColor: pigment(latest.hue) } : undefined} >
         <AnimatePresence mode="wait">
           {uploading ? (
-            <motion.div
-              key="uploading"
+            <motion.div key="uploading"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-10 grid place-items-center bg-paper"
-            >
+              className="absolute inset-0 z-10 grid place-items-center bg-paper" >
               <div className="flex flex-col items-center">
                 <motion.span
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 0.7, ease: "linear" }}
-                  className="h-9 w-9 rule border-t-pop"
-                />
+                  className="h-9 w-9 rule border-t-pop" />
                 <p className="stencil mt-3 text-[10.5px] text-ink-2">UPLOADING…</p>
               </div>
             </motion.div>
@@ -90,8 +85,7 @@ export function UploadCard({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0"
-            >
+              className="absolute inset-0" >
               <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5">
                 <Badge tone="ink" size="sm">{latest.label}</Badge>
                 <Badge tone="ink" size="sm">
@@ -100,13 +94,11 @@ export function UploadCard({
               </div>
             </motion.div>
           ) : (
-            <motion.div
-              key="empty"
+            <motion.div key="empty"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 grid place-items-center px-6 text-center"
-            >
+              className="absolute inset-0 grid place-items-center px-6 text-center" >
               <div>
                 <ImagePlus className="mx-auto h-11 w-11 text-ink-3" strokeWidth={1.6} />
                 <p className="headline mt-3 text-[16px] text-ink">{title}</p>
@@ -127,8 +119,7 @@ export function UploadCard({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               className="group relative h-16 w-16 shrink-0 overflow-hidden rule"
-              style={{ backgroundColor: pigment(s.hue) }}
-            >
+              style={{ backgroundColor: pigment(s.hue) }} >
               <span className="stencil absolute inset-x-0 bottom-0 bg-[rgb(var(--ink))] px-1 py-0.5 text-center text-[7.5px] text-[rgb(var(--paper))]">
                 {s.label}
               </span>
@@ -136,8 +127,7 @@ export function UploadCard({
                 <button
                   onClick={() => onRemove(s.id)}
                   aria-label={`Remove ${s.label}`}
-                  className="absolute inset-0 grid place-items-center bg-bad opacity-0 transition-opacity group-hover:opacity-100"
-                >
+                  className="absolute inset-0 grid place-items-center bg-bad opacity-0 transition-opacity group-hover:opacity-100" >
                   <Trash2 className="h-4 w-4 text-white" strokeWidth={2.6} />
                 </button>
               )}

@@ -15,13 +15,8 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement> & { interactive?: boolean }) {
   return (
     <div
-      className={cn(
-        "relative bg-paper rule drop-3",
-        interactive && "tap cursor-pointer press",
-        className,
-      )}
-      {...props}
-    />
+      className={cn("relative bg-paper rule drop-3", interactive && "tap cursor-pointer press", className)}
+      {...props} />
   );
 }
 
@@ -33,18 +28,12 @@ export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDiv
   return (
     <div
       className={cn("flex items-start justify-between gap-4 rule-b bg-paper-2 px-4 py-3", className)}
-      {...props}
-    />
+      {...props} />
   );
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return (
-    <h3
-      className={cn("stencil text-[12px] leading-tight text-ink", className)}
-      {...props}
-    />
-  );
+  return <h3 className={cn("stencil text-[12px] leading-tight text-ink", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
@@ -82,9 +71,20 @@ export function SectionTitle({
   );
 }
 
+const BAR: Record<string, string> = {
+  accent: "bg-accent text-accent-ink",
+  pop: "bg-pop text-white",
+  ok: "bg-ok text-ink-black",
+  warn: "bg-warn text-ink-black",
+  bad: "bg-bad text-white",
+  info: "bg-pop text-white",
+  ink: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
+  neutral: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
+};
+
 /**
- * Colour-blocked panel — used where a card needs to shout. The label sits in
- * a stencilled bar across the top.
+ * Colour-blocked bg-paper rule drop-3 — used where a card needs to shout. The label sits
+ * in a stencilled bar across the top.
  */
 export function BlockPanel({
   label,
@@ -94,24 +94,15 @@ export function BlockPanel({
   action,
 }: {
   label: string;
-  tone?: "accent" | "pop" | "ok" | "warn" | "bad" | "ink";
+  tone?: "accent" | "pop" | "ok" | "warn" | "bad" | "info" | "ink" | "neutral";
   children: React.ReactNode;
   className?: string;
   action?: React.ReactNode;
 }) {
-  const bar = {
-    accent: "bg-accent text-accent-ink",
-    pop: "bg-pop text-white",
-    ok: "bg-ok text-ink-black",
-    warn: "bg-warn text-ink-black",
-    bad: "bg-bad text-white",
-    ink: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
-  }[tone];
-
   return (
     <div className={cn("relative bg-paper rule drop-3", className)}>
-      <div className={cn("flex items-center justify-between gap-3 rule-b px-4 py-2", bar)}>
-        <span className="stencil text-[11px]">{label}</span>
+      <div className={cn("flex items-center justify-between gap-3 rule-b px-4 py-2", BAR[tone])}>
+        <span className="stencil truncate text-[11px]">{label}</span>
         {action}
       </div>
       {children}

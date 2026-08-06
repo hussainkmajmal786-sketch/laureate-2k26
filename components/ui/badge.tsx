@@ -5,29 +5,28 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /** Stamped label — square, ruled, stencil type. */
-const badge = cva(
-  "stencil inline-flex items-center gap-1.5 rule whitespace-nowrap leading-none",
-  {
-    variants: {
-      tone: {
-        neutral: "bg-paper-2 text-ink",
-        accent: "bg-accent text-accent-ink",
-        pop: "bg-pop text-white",
-        ok: "bg-ok text-ink-black",
-        warn: "bg-warn text-ink-black",
-        bad: "bg-bad text-white",
-        ink: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
-        outline: "bg-transparent text-ink",
-      },
-      size: {
-        sm: "h-5 px-1.5 text-[9.5px]",
-        md: "h-6 px-2 text-[10.5px]",
-        lg: "h-8 px-3 text-[12px]",
-      },
+const badge = cva("stencil inline-flex items-center gap-1.5 rule whitespace-nowrap leading-none", {
+  variants: {
+    tone: {
+      neutral: "bg-paper-2 text-ink",
+      accent: "bg-accent text-accent-ink",
+      pop: "bg-pop text-white",
+      ok: "bg-ok text-ink-black",
+      warn: "bg-warn text-ink-black",
+      bad: "bg-bad text-white",
+      ink: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
+      solid: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
+      glass: "bg-[rgb(var(--ink))] text-[rgb(var(--paper))]",
+      outline: "bg-transparent text-ink",
     },
-    defaultVariants: { tone: "neutral", size: "md" },
+    size: {
+      sm: "h-5 px-1.5 text-[9.5px]",
+      md: "h-6 px-2 text-[10.5px]",
+      lg: "h-8 px-3 text-[12px]",
+    },
   },
-);
+  defaultVariants: { tone: "neutral", size: "md" },
+});
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement>,
@@ -51,8 +50,7 @@ export function LiveBadge({ label = "LIVE", className }: { label?: string; class
       className={cn(
         "stencil inline-flex h-6 items-center gap-1.5 rule bg-ok px-2 text-[10.5px] leading-none text-ink-black",
         className,
-      )}
-    >
+      )} >
       <span className="animate-blink h-1.5 w-1.5 bg-ink-black" />
       {label}
     </span>

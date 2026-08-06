@@ -257,8 +257,14 @@
   .tap { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
-  .text-pretty { text-wrap: pretty; }
   .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+}
+
+@media print {
+  body { background: #fff; color: #000; background-image: none; }
+  .qr-print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12mm; }
+  .qr-print-card { break-inside: avoid; box-shadow: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -268,13 +274,4 @@
     transition-duration: 0.01ms !important;
   }
   .press:hover, .press-sm:hover { transform: none; }
-}
-
-@media print {
-  @page { size: A4; margin: 12mm; }
-  body { background: #fff !important; }
-  .qr-print-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8mm !important; }
-  .qr-print-card { break-inside: avoid; min-height: 112mm; box-shadow: none !important; }
-  .qr-print-card .flex.flex-wrap { display: none !important; }
-  header, aside, nav, button, input, textarea { display: none !important; }
 }

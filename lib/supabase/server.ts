@@ -1,0 +1,51 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import type { Database } from "./types";
+
+/**
+ * Server-side Supabase client for Server Components, Route Handlers and
+ * Server Actions. Reads the session from cookies so RLS applies as the
+ * signed-in volunteer.
+ */
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
+          } catch {
+            // Called from a Server Component, where cookies are read-only.
+            // Middleware refreshes the session, so this is safe to ignore.
+          }
+        },
+      },
+    },
+  );
+}
+
+/** The signed-in volunteer's profile, or null when signed out. */
+export async function getCurrentVolunteer() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("volunteers")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return data;
+}

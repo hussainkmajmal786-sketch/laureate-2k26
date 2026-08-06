@@ -21,8 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = React.useState<Theme>("light");
 
   React.useEffect(() => {
-    const initial = document.documentElement.classList.contains("dark") ? "dark" : "light";
-    setTheme(initial);
+    setTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
   }, []);
 
   const set = React.useCallback((t: Theme) => {

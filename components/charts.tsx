@@ -16,7 +16,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { DEPARTMENTS, HOURLY_FLOW, QUEUE_TIMES, departmentStats } from "@/lib/data";
+import type { DepartmentStats, HourlyFlow } from "@/lib/supabase/types";
 
 /* Recharts needs concrete colours, so the theme is read once on mount. */
 function useInk() {
@@ -63,12 +63,12 @@ function ChartTooltip({
   );
 }
 
-/** Throughput by hour — solid bars, no area gradients. */
-export function FlowChart({ height = 260 }: { height?: number }) {
+/** Throughput by hour — solid bars, no gradients. */
+export function FlowChart({ data, height = 260 }: { data: HourlyFlow[]; height?: number }) {
   const c = useInk();
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={HOURLY_FLOW} margin={{ top: 8, right: 4, left: -24, bottom: 0 }} barCategoryGap="22%">
+      <BarChart data={data} margin={{ top: 8, right: 4, left: -24, bottom: 0 }} barCategoryGap="22%">
         <CartesianGrid stroke={c.soft} strokeWidth={1} vertical={false} />
         <XAxis dataKey="hour" tick={{ ...AXIS, fill: c.ink }} axisLine={{ stroke: c.ink, strokeWidth: 2 }} tickLine={false} />
         <YAxis tick={{ ...AXIS, fill: c.ink }} axisLine={false} tickLine={false} width={42} />
@@ -82,14 +82,18 @@ export function FlowChart({ height = 260 }: { height?: number }) {
 }
 
 /** Branch distribution — a ruled pie, not a thin donut. */
-export function BranchDonut({ height = 240 }: { height?: number }) {
+export function BranchDonut({ data, height = 240 }: { data: DepartmentStats[]; height?: number }) {
   const c = useInk();
-  const data = DEPARTMENTS.map((d) => ({ name: d.short, value: d.total, color: d.color }));
+  const rows = data.map((d) => ({
+    name: d.short ?? d.code ?? "",
+    value: d.total ?? 0,
+    color: d.color ?? "#2563eb",
+  }));
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" innerRadius="42%" outerRadius="88%" paddingAngle={0}>
-          {data.map((d) => (
+        <Pie data={rows} dataKey="value" nameKey="name" innerRadius="42%" outerRadius="88%" paddingAngle={0}>
+          {rows.map((d) => (
             <Cell key={d.name} fill={d.color} stroke={c.ink} strokeWidth={2.5} />
           ))}
         </Pie>
@@ -100,9 +104,8 @@ export function BranchDonut({ height = 240 }: { height?: number }) {
 }
 
 /** Per-department completion. */
-export function DepartmentBars({ height = 300 }: { height?: number }) {
+export function DepartmentBars({ data, height = 300 }: { data: DepartmentStats[]; height?: number }) {
   const c = useInk();
-  const data = departmentStats();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 8, right: 4, left: -24, bottom: 0 }} barCategoryGap="20%">
@@ -111,7 +114,7 @@ export function DepartmentBars({ height = 300 }: { height?: number }) {
         <YAxis tick={{ ...AXIS, fill: c.ink }} axisLine={false} tickLine={false} width={42} />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: c.soft, opacity: 0.3 }} />
         <Legend iconType="square" iconSize={9} wrapperStyle={{ fontSize: 10.5, fontWeight: 700, paddingTop: 10, color: c.ink }} />
-        <Bar dataKey="checkedIn" name="Checked in" fill="#2563eb" stroke={c.ink} strokeWidth={2} />
+        <Bar dataKey="checked_in" name="Checked in" fill="#2563eb" stroke={c.ink} strokeWidth={2} />
         <Bar dataKey="stage" name="Stage" fill="#10b981" stroke={c.ink} strokeWidth={2} />
         <Bar dataKey="booth" name="Booth" fill="#f59e0b" stroke={c.ink} strokeWidth={2} />
         <Bar dataKey="certificate" name="Certificate" fill="#ec4899" stroke={c.ink} strokeWidth={2} />
@@ -121,11 +124,17 @@ export function DepartmentBars({ height = 300 }: { height?: number }) {
 }
 
 /** Queue wait times — thick stepped lines with square joints. */
-export function QueueChart({ height = 260 }: { height?: number }) {
+export function QueueChart({
+  data,
+  height = 260,
+}: {
+  data: { hour: string; booth1: number; booth2: number; stage: number }[];
+  height?: number;
+}) {
   const c = useInk();
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={QUEUE_TIMES} margin={{ top: 8, right: 6, left: -24, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 8, right: 6, left: -24, bottom: 0 }}>
         <CartesianGrid stroke={c.soft} vertical={false} />
         <XAxis dataKey="hour" tick={{ ...AXIS, fill: c.ink }} axisLine={{ stroke: c.ink, strokeWidth: 2 }} tickLine={false} />
         <YAxis tick={{ ...AXIS, fill: c.ink }} axisLine={false} tickLine={false} width={42} unit="m" />
@@ -148,8 +157,7 @@ export function MiniBars({ values, color = "#2563eb" }: { values: number[]; colo
         <div
           key={i}
           className="flex-1 rule"
-          style={{ height: `${Math.max((v / max) * 100, 6)}%`, backgroundColor: color }}
-        />
+          style={{ height: `${Math.max((v / max) * 100, 6)}%`, backgroundColor: color }} />
       ))}
     </div>
   );

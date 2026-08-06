@@ -61,8 +61,7 @@ export function EmptyState({
         initial={{ scale: 0.8, rotate: -8, opacity: 0 }}
         animate={{ scale: 1, rotate: -3, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 18 }}
-        className="grid h-16 w-16 place-items-center rule bg-warn drop-2"
-      >
+        className="grid h-16 w-16 place-items-center rule bg-warn drop-2" >
         <Icon className="h-7 w-7 text-ink-black" strokeWidth={2.4} />
       </motion.div>
       <h3 className="headline mt-5 text-[19px] text-ink">{title}</h3>
@@ -139,18 +138,14 @@ export function Modal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="halftone absolute inset-0 bg-[rgb(var(--ink))]/55"
-          />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
+            className="halftone absolute inset-0 bg-[rgb(var(--ink))]/55" />
+          <motion.div role="dialog" aria-modal="true"
             aria-label={title}
             initial={{ opacity: 0, y: 30, rotate: -1 }}
             animate={{ opacity: 1, y: 0, rotate: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ type: "spring", stiffness: 420, damping: 30 }}
-            className={cn("relative w-full bg-paper rule-thick drop-4", width)}
-          >
+            className={cn("relative w-full bg-paper rule-thick drop-4", width)} >
             {title && (
               <div className="flex items-start justify-between gap-4 rule-b bg-accent px-5 py-3">
                 <div className="min-w-0">
@@ -162,20 +157,16 @@ export function Modal({
                   )}
                 </div>
                 <button
-                  onClick={onClose}
-                  aria-label="Close dialog"
-                  className="tap grid h-7 w-7 shrink-0 place-items-center rule border-accent-ink text-accent-ink transition-colors hover:bg-accent-ink hover:text-accent"
-                >
+                  onClick={onClose} aria-label="Close dialog"
+                  className="tap grid h-7 w-7 shrink-0 place-items-center rule border-accent-ink text-accent-ink transition-colors hover:bg-accent-ink hover:text-accent" >
                   <X className="h-4 w-4" strokeWidth={3} />
                 </button>
               </div>
             )}
             {!title && (
               <button
-                onClick={onClose}
-                aria-label="Close dialog"
-                className="tap absolute top-3 right-3 z-10 grid h-7 w-7 place-items-center rule bg-paper text-ink hover:bg-ink hover:text-paper"
-              >
+                onClick={onClose} aria-label="Close dialog"
+                className="tap absolute top-3 right-3 z-10 grid h-7 w-7 place-items-center rule bg-paper text-ink hover:bg-ink hover:text-paper" >
                 <X className="h-4 w-4" strokeWidth={3} />
               </button>
             )}
@@ -210,20 +201,17 @@ export function ConfirmModal({
       open={open}
       onClose={onClose}
       title={title}
-      description={description}
-      size="sm"
+      description={description} size="sm"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>CANCEL</Button>
           <Button
             variant={destructive ? "danger" : "primary"}
-            onClick={() => { onConfirm(); onClose(); }}
-          >
+            onClick={() => { onConfirm(); onClose(); }} >
             {confirmLabel}
           </Button>
         </>
-      }
-    />
+      } />
   );
 }
 
@@ -232,27 +220,19 @@ export function ConfirmModal({
 export function SuccessCheck({ size = 76 }: { size?: number }) {
   return (
     <motion.svg width={size} height={size} viewBox="0 0 76 76" initial="hidden" animate="visible" aria-hidden>
-      <motion.rect
-        x="4" y="4" width="68" height="68"
-        fill="none"
-        stroke="rgb(var(--ink))"
+      <motion.rect x="4" y="4" width="68" height="68" fill="none" stroke="rgb(var(--ink))"
         strokeWidth="4"
         variants={{
           hidden: { pathLength: 0 },
           visible: { pathLength: 1, transition: { duration: 0.45, ease: "easeOut" } },
-        }}
-      />
-      <motion.path
-        d="M20 39 L32 51 L56 25"
-        fill="none"
-        stroke="rgb(var(--ok))"
+        }} />
+      <motion.path d="M20 39 L32 51 L56 25" fill="none" stroke="rgb(var(--ok))"
         strokeWidth="8"
         strokeLinecap="square"
         variants={{
           hidden: { pathLength: 0 },
           visible: { pathLength: 1, transition: { duration: 0.3, delay: 0.3, ease: "easeOut" } },
-        }}
-      />
+        }} />
     </motion.svg>
   );
 }
@@ -331,8 +311,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 animate={{ opacity: 1, x: 0, rotate: 0 }}
                 exit={{ opacity: 0, x: 30, transition: { duration: 0.15 } }}
                 transition={{ type: "spring", stiffness: 460, damping: 30 }}
-                className="pointer-events-auto flex w-full max-w-sm items-stretch bg-paper rule-thick drop-3"
-              >
+                className="pointer-events-auto flex w-full max-w-sm items-stretch bg-paper rule-thick drop-3" >
                 <span className={cn("grid w-10 shrink-0 place-items-center rule-r", TONE_BAR[t.tone])}>
                   <Icon className="h-4.5 w-4.5" strokeWidth={3} />
                 </span>
@@ -343,10 +322,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <button
-                  onClick={() => setToasts((p) => p.filter((x) => x.id !== t.id))}
-                  aria-label="Dismiss"
-                  className="tap grid w-8 shrink-0 place-items-center rule-l text-ink-3 hover:bg-paper-2 hover:text-ink"
-                >
+                  onClick={() => setToasts((p) => p.filter((x) => x.id !== t.id))} aria-label="Dismiss"
+                  className="tap grid w-8 shrink-0 place-items-center rule-l text-ink-3 hover:bg-paper-2 hover:text-ink" >
                   <X className="h-3.5 w-3.5" strokeWidth={3} />
                 </button>
               </motion.div>
