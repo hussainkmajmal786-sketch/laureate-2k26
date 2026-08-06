@@ -13,9 +13,17 @@ function isPublic(pathname: string) {
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Guard: if Supabase env vars are not configured (e.g. Vercel deployment
+  // before env vars are added), skip auth checks to avoid a middleware crash.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !supabaseKey) {
+    return response;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
