@@ -42,27 +42,46 @@ export default async function Landing() {
   let depts: Array<{ code: string; name: string; color: string }> = [];
   let totals = new Map<string, number>();
 
+  /** Ships the built-in cohort so the public page still renders. */
+  function applyFallback() {
+    depts = FALLBACK_DEPARTMENTS.map(({ code, name, color }) => ({ code, name, color }));
+    totals = new Map(FALLBACK_DEPARTMENTS.map((d) => [d.code, d.total]));
+    stats = { total: TOTAL_GRADUATES, checked_in: 1519, photos: 1052 };
+  }
+
   try {
     const supabase = await createClient();
-    const [{ data: remoteStats }, { data: departments }, { data: remoteSettings }, { data: deptStats }] = await Promise.all([
+    const [statsRes, deptRes, settingsRes, deptStatsRes] = await Promise.all([
       supabase.from("event_stats").select("*").maybeSingle(),
       supabase.from("departments").select("*").order("sort_order"),
       supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("department_stats").select("*").order("sort_order"),
     ]);
-    stats = remoteStats;
-    settings = remoteSettings;
-    depts = departments ?? [];
-    totals = new Map(
-      (deptStats ?? [])
-        .filter((d) => Boolean(d.code))
-        .map((d) => [d.code as string, d.total ?? 0]),
-    );
+
+    /*
+     * supabase-js resolves with { data: null, error } rather than throwing,
+     * so a bad key or unreachable project lands here, not in the catch.
+     * Treat "no departments" as the signal that the query really failed —
+     * otherwise the page renders with an empty cohort and no cards.
+     */
+    if (deptRes.error || !deptRes.data?.length) {
+      applyFallback();
+    } else {
+      stats = statsRes.data;
+      settings = settingsRes.data;
+      depts = deptRes.data;
+      totals = new Map(
+        (deptStatsRes.data ?? [])
+          .filter((d) => Boolean(d.code))
+          .map((d) => [d.code as string, d.total ?? 0]),
+      );
+      if (totals.size === 0) {
+        totals = new Map(FALLBACK_DEPARTMENTS.map((d) => [d.code, d.total]));
+      }
+    }
   } catch {
-    // Keep the public landing page available before Vercel/Supabase env setup.
-    depts = FALLBACK_DEPARTMENTS.map(({ code, name, color }) => ({ code, name, color }));
-    totals = new Map(FALLBACK_DEPARTMENTS.map((d) => [d.code, d.total]));
-    stats = { total: TOTAL_GRADUATES, checked_in: 1519, photos: 1052 };
+    // Network-level failure (DNS, TLS) does still throw.
+    applyFallback();
   }
 
   const total = stats?.total ?? TOTAL_GRADUATES;
