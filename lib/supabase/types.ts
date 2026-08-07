@@ -372,6 +372,39 @@ export type Database = {
         }
         Relationships: []
       }
+      volunteer_invites: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          name: string | null
+          role: Database["public"]["Enums"]["volunteer_role"]
+          station: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          name?: string | null
+          role?: Database["public"]["Enums"]["volunteer_role"]
+          station?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          role?: Database["public"]["Enums"]["volunteer_role"]
+          station?: string | null
+        }
+        Relationships: []
+      }
       volunteers: {
         Row: {
           avg_seconds: number
@@ -512,6 +545,10 @@ export type Database = {
         Returns: Database["public"]["Tables"]["students"]["Row"]
       }
       get_student_hub: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      self_join_booth_queue: {
         Args: { p_token: string }
         Returns: Json
       }

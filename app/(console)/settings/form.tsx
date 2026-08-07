@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/feedback";
 import { useTheme } from "@/components/theme-provider";
+import { DrivePanel } from "./drive-panel";
+import type { DriveStatus } from "@/lib/drive-actions";
 import { updateEventSettings } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 import type { DepartmentRow, EventSettingsRow } from "@/lib/supabase/types";
@@ -38,10 +40,12 @@ export function SettingsForm({
   settings,
   departments,
   isAdmin,
+  drive,
 }: {
   settings: EventSettingsRow | null;
   departments: DepartmentRow[];
   isAdmin: boolean;
+  drive: DriveStatus;
 }) {
   const { theme, set } = useTheme();
   const [active, setActive] = React.useState("branding");
@@ -206,19 +210,20 @@ export function SettingsForm({
           </div>
         </BlockPanel>
 
-        <BlockPanel label="Google Drive" tone="bad"
+        <BlockPanel
+          label="Google Drive"
+          tone={drive.connected ? "ok" : "bad"}
           className="scroll-mt-20"
-          action={<Badge tone="warn" size="sm" dot>Not connected</Badge>} >
-          <div id="drive" className="space-y-4 p-5">
-            <div className=" bg-warn-soft p-4">
-              <p className="text-[12.5px] leading-relaxed text-warn">
-                Drive integration is not wired up in this build. Photo records are stored in the
-                database; the image files themselves are not yet uploaded anywhere.
-              </p>
-            </div>
-            <Button variant="secondary" size="md" disabled>
-              Connect Google account
-            </Button>
+          action={
+            <Badge tone={drive.connected ? "ok" : "warn"} size="sm" dot>
+              {drive.connected ? "Connected" : "Not connected"}
+            </Badge>
+          } >
+          <div id="drive">
+            <DrivePanel
+              initial={drive}
+              savedFolder={settings?.drive_root_folder ?? null}
+              isAdmin={isAdmin} />
           </div>
         </BlockPanel>
 

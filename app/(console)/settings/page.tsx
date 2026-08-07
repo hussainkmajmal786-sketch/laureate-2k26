@@ -1,4 +1,5 @@
 import { Page, PageHeader } from "@/components/shell/app-shell";
+import { getDriveStatus } from "@/lib/drive-actions";
 import { SettingsForm } from "./form";
 import { getDepartments, getEventSettings } from "@/lib/queries";
 import { getCurrentVolunteer } from "@/lib/supabase/server";
@@ -6,10 +7,11 @@ import { getCurrentVolunteer } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const [settings, departments, volunteer] = await Promise.all([
+  const [settings, departments, volunteer, drive] = await Promise.all([
     getEventSettings(),
     getDepartments(),
     getCurrentVolunteer(),
+    getDriveStatus(),
   ]);
 
   return (
@@ -19,7 +21,8 @@ export default async function SettingsPage() {
       <SettingsForm
         settings={settings}
         departments={departments}
-        isAdmin={volunteer?.role === "admin"} />
+        isAdmin={volunteer?.role === "admin"}
+        drive={drive} />
     </Page>
   );
 }

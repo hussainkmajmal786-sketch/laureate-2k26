@@ -216,7 +216,120 @@ export async function updateVolunteer(input: {
   return { ok: true };
 }
 
-/* ── Settings ────────────────────────────────────────────── */
+
+/**
+ * Pre-assign a role to someone who has not signed up yet.
+ *
+ * Creating the auth user outright would need the service_role key, which
+ * must never reach the browser. Instead the invite is matched by email
+ * when they sign up normally, and the signup trigger grants the role.
+ */
+export async function inviteVolunteer(input: {
+  email: string;
+  name?: string;
+  role: VolunteerRoleValue;
+  station?: string;
+}): Promise<ActionResult> {
+  const email = input.email.trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return { ok: false, error: "Enter a valid email address." };
+  }
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  // Already signed up? Update the live profile instead of inviting again.
+  const { data: existing } = await supabase
+    .from("volunteers")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("volunteers")
+      .update({ role: input.role, station: input.station || null })
+      .eq("id", existing.id);
+    if (error) return { ok: false, error: friendly(error.message) };
+    revalidatePath("/volunteers");
+    return { ok: true, data: { updated: true } };
+  }
+
+  const { error } = await supabase.from("volunteer_invites").upsert(
+    {
+      email,
+      name: input.name?.trim() || null,
+      role: input.role,
+      station: input.station?.trim() || null,
+      created_by: auth.user?.id ?? null,
+      claimed_at: null,
+    },
+    { onConflict: "email" },
+  );
+
+  if (error) return { ok: false, error: friendly(error.message) };
+
+  revalidatePath("/volunteers");
+  return { ok: true, data: { invited: true } };
+}
+
+export async function revokeInvite(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("volunteer_invites").delete().eq("id", id);
+  if (error) return { ok: false, error: friendly(error.message) };
+  revalidatePath("/volunteers");
+  return { ok: true };
+}
+
+
+/**
+ * Operator overrides for the booth queue.
+ *
+ * The self-service kiosk covers the normal case; these exist for when it
+ * does not — a graduate whose pass will not scan, someone who needs to be
+ * seen sooner, or a token issued by mistake.
+ */
+export async function removeFromQueue(entryId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("booth_queue").delete().eq("id", entryId);
+  if (error) return { ok: false, error: friendly(error.message) };
+
+  revalidatePath("/booth");
+  revalidatePath("/queue");
+  revalidatePath("/display");
+  return { ok: true };
+}
+
+/** Moves an entry to the front so the next call serves them. */
+export async function bumpToFront(entryId: string, boothId: number): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  const { data: first } = await supabase
+    .from("booth_queue")
+    .select("position")
+    .eq("booth_id", boothId)
+    .eq("served", false)
+    .order("position")
+    .limit(1)
+    .maybeSingle();
+
+  // Fractional positions avoid renumbering the whole queue.
+  const target = (first?.position ?? 1) - 1;
+
+  const { error } = await supabase
+    .from("booth_queue")
+    .update({ position: target })
+    .eq("id", entryId);
+
+  if (error) return { ok: false, error: friendly(error.message) };
+
+  revalidatePath("/booth");
+  revalidatePath("/queue");
+  revalidatePath("/display");
+  return { ok: true };
+}
+
+/* ── Settings ──────────────────────────────────────────── */
 
 export async function updateEventSettings(input: {
   name?: string;

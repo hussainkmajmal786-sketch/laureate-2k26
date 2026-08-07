@@ -8,6 +8,8 @@ import { EmptyState } from "@/components/ui/feedback";
 import { getRecentActivity, getScanCounts, getVolunteers } from "@/lib/queries";
 import { getCurrentVolunteer } from "@/lib/supabase/server";
 import { VolunteerRoster } from "./roster";
+import { InviteVolunteer, type PendingInvite } from "./invite";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +20,13 @@ export default async function VolunteersPage() {
     getScanCounts(),
     getCurrentVolunteer(),
   ]);
+
+  const supabase = await createClient();
+  const { data: invites } = await supabase
+    .from("volunteer_invites")
+    .select("id, email, name, role, station")
+    .is("claimed_at", null)
+    .order("created_at", { ascending: false });
 
   const online = volunteers.filter((v) => v.online).length;
   const totalScans = Object.values(scans).reduce((a, b) => a + b, 0);
@@ -34,7 +43,13 @@ export default async function VolunteersPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="space-y-4 lg:col-span-2">
+          {/* Admins can pre-assign roles before anyone has signed up. */}
+          <InviteVolunteer
+            invites={(invites ?? []) as PendingInvite[]}
+            isAdmin={me?.role === "admin"}
+          />
+
           {volunteers.length === 0 ? (
             <Card>
               <EmptyState

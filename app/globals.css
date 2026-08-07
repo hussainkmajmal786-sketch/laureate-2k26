@@ -282,10 +282,56 @@
   .text-pretty { text-wrap: pretty; }
 }
 
+/* ── Bulk QR invitation printing ─────────────────────────────
+   Two cards per A4 page at roughly A6 invitation size (105x148mm),
+   so a stack can be guillotined straight down the middle. */
 @media print {
-  body { background: #fff; color: #000; background-image: none; }
-  .qr-print-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12mm; }
-  .qr-print-card { break-inside: avoid; box-shadow: none; }
+  @page { size: A4 portrait; margin: 10mm; }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    background-image: none !important;
+  }
+
+  /* Everything except the cards themselves is screen furniture. */
+  .print-hide,
+  aside, header, nav, footer,
+  .qr-print-toolbar { display: none !important; }
+
+  .qr-print-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6mm;
+    align-content: start;
+  }
+
+  .qr-print-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    /* A6-ish: two across, two down, four per A4 sheet. */
+    height: 132mm;
+    border: 1.5pt solid #14100e !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Force the colour blocks to actually print. */
+  .qr-print-card * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Cut guides at each card corner. */
+  .qr-print-card::after {
+    content: "";
+    position: absolute;
+    inset: -3mm;
+    border: 0.25pt dashed #9aa0a6;
+    pointer-events: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
