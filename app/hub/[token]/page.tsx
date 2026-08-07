@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { deptColor } from "@/lib/dept-colors";
 import { StreamPlayer } from "./stream";
 import { HubGallery } from "./gallery";
+import { signPhotoUrls } from "@/lib/photo-import";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ interface HubPayload {
     category: string;
     hue: number;
     captured_at: string;
+    storage_path: string | null;
     drive_view_url: string | null;
     drive_thumb_url: string | null;
   }[];
@@ -74,6 +76,14 @@ export default async function GraduateHub({ params }: { params: Promise<{ token:
       </main>
     );
   }
+
+  /*
+   * The photo bucket is private, so paths are exchanged for short-lived
+   * signed URLs here on the server. A path alone grants nothing.
+   */
+  const signed = await signPhotoUrls(
+    hub.photos.map((ph) => ph.storage_path).filter((x): x is string => Boolean(x)),
+  );
 
   const s = hub.student;
   const accent = deptColor(s.dept_code);
@@ -218,7 +228,7 @@ export default async function GraduateHub({ params }: { params: Promise<{ token:
         </section>
 
         {/* Photos — only this graduate's own */}
-        <HubGallery photos={hub.photos} name={s.name} />
+        <HubGallery photos={hub.photos} signed={signed} name={s.name} />
 
         <p className="mt-6 text-center text-[11.5px] text-ink-3">
           This link is yours. Keep it — your photos stay here permanently.

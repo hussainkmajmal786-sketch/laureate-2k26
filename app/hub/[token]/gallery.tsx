@@ -11,16 +11,32 @@ interface HubPhoto {
   category: string;
   hue: number;
   captured_at: string;
+  storage_path: string | null;
   drive_view_url: string | null;
   drive_thumb_url: string | null;
 }
 
 /**
- * The graduate's own photos. Files live in Google Drive; the database is
- * what decides which files are theirs, so this list can never show anyone
- * else's pictures.
+ * The graduate's own photos.
+ *
+ * Files live in a private Supabase Storage bucket; the database row decides
+ * which files are theirs, and the parent server component exchanges each
+ * path for a short-lived signed URL. This list can never show anyone else's
+ * pictures.
  */
-export function HubGallery({ photos, name }: { photos: HubPhoto[]; name: string }) {
+export function HubGallery({
+  photos,
+  signed,
+  name,
+}: {
+  photos: HubPhoto[];
+  signed: Record<string, string>;
+  name: string;
+}) {
+  /** Signed Storage URL when present, else any legacy Drive link. */
+  const srcOf = (p: HubPhoto) =>
+    (p.storage_path ? signed[p.storage_path] : null) ?? p.drive_thumb_url;
+
   const [active, setActive] = React.useState<HubPhoto | null>(null);
 
   return (
@@ -46,9 +62,9 @@ export function HubGallery({ photos, name }: { photos: HubPhoto[]; name: string 
               onClick={() => setActive(p)}
               className="press-sm group relative aspect-square overflow-hidden rule bg-paper-2"
             >
-              {p.drive_thumb_url ? (
+              {srcOf(p) ? (
                 <img
-                  src={p.drive_thumb_url}
+                  src={srcOf(p)!}
                   alt={`${name} — ${p.category}`}
                   loading="lazy"
                   className="h-full w-full object-cover"
@@ -88,9 +104,9 @@ export function HubGallery({ photos, name }: { photos: HubPhoto[]; name: string 
               </button>
             </div>
 
-            {active.drive_thumb_url ? (
+            {srcOf(active) ? (
               <img
-                src={active.drive_thumb_url}
+                src={srcOf(active)!}
                 alt={`${name} — ${active.category}`}
                 className="max-h-[65dvh] w-full bg-ink-black object-contain"
               />
@@ -109,16 +125,17 @@ export function HubGallery({ photos, name }: { photos: HubPhoto[]; name: string 
                   month: "short",
                 })}
               </Badge>
-              {active.drive_view_url && (
+              {srcOf(active) && (
                 <>
-                  <a href={active.drive_view_url} target="_blank" rel="noreferrer" className="ml-auto">
+                  <a href={srcOf(active)!} target="_blank" rel="noreferrer" className="ml-auto">
                     <span className="stencil inline-flex items-center gap-1.5 rule bg-paper px-3 py-2 text-[9.5px] text-ink drop-1">
                       <ExternalLink className="h-3.5 w-3.5" />
                       OPEN IN DRIVE
                     </span>
                   </a>
                   <a
-                    href={active.drive_view_url.replace("/view", "").replace("/file/d/", "/uc?export=download&id=")}
+                    href={srcOf(active)!}
+                    download
                     target="_blank"
                     rel="noreferrer"
                   >

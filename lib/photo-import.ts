@@ -3,8 +3,10 @@
 import exifr from "exifr";
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
-import { ensureEventFolders, isDriveConfigured, uploadPhoto } from "./drive";
 import type { MediaCategory } from "./supabase/types";
+
+/** Only async functions may be exported from a "use server" module. */
+const PHOTO_BUCKET = "ceremony-photos";
 
 export interface ImportResult {
   ok: boolean;
@@ -33,23 +35,27 @@ async function captureTime(buffer: Buffer, fallback: number): Promise<Date> {
   return new Date(fallback);
 }
 
+/** Keeps object keys predictable and free of characters Storage dislikes. */
+function safeName(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+}
+
 /**
  * Bulk-imports a card of ceremony photos after the event.
  *
- * Each photo is matched to whichever graduate was on stage when it was
- * taken, using the `stage_appearances` log. A tolerance window absorbs
- * small clock drift between the camera and the console.
+ * Files go to Supabase Storage rather than Google Drive: a Google service
+ * account has no storage quota on My Drive and cannot upload there at all,
+ * and Drive cannot express "only this graduate may see this file" anyway.
+ * The database row is what ties a photo to a graduate, and the bucket is
+ * private — the hub serves photos through short-lived signed URLs.
  *
- * Clock drift is the known weak point: if the camera clock is wrong by
- * more than the tolerance, photos attach to the wrong graduate. The
- * `clockOffsetMinutes` argument corrects a known, measured offset.
+ * Each photo is matched to whoever was on stage when it was taken, using
+ * the `stage_appearances` log. Clock drift is the known weak point: if the
+ * camera clock is off by more than the tolerance, photos attach to the
+ * wrong graduate, so `clockOffsetMinutes` corrects a measured offset.
  */
 export async function importCeremonyPhotos(formData: FormData): Promise<ImportResult> {
   const empty: ImportResult = { ok: false, uploaded: 0, matched: 0, unmatched: 0, details: [] };
-
-  if (!isDriveConfigured()) {
-    return { ...empty, error: "Google Drive is not connected. Add credentials in Settings." };
-  }
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -78,19 +84,6 @@ export async function importCeremonyPhotos(formData: FormData): Promise<ImportRe
     };
   }
 
-  let folders;
-  try {
-    folders = await ensureEventFolders();
-  } catch (e) {
-    return { ...empty, error: e instanceof Error ? e.message : "Drive folders unavailable." };
-  }
-
-  const targetFolder =
-    category === "Stage" ? folders.stage
-      : category === "Booth" ? folders.booth
-      : category === "Group" ? folders.group
-      : folders.candid;
-
   const result: ImportResult = { ok: true, uploaded: 0, matched: 0, unmatched: 0, details: [] };
 
   for (const file of files) {
@@ -98,7 +91,7 @@ export async function importCeremonyPhotos(formData: FormData): Promise<ImportRe
     const takenRaw = await captureTime(buffer, file.lastModified);
     const taken = new Date(takenRaw.getTime() + offsetMs);
 
-    // Whoever was on stage at that instant, else the nearest within tolerance.
+    // Whoever was on stage at that instant, within the tolerance window.
     let studentId: string | undefined;
     for (const a of appearances) {
       const start = new Date(a.started_at).getTime();
@@ -120,19 +113,22 @@ export async function importCeremonyPhotos(formData: FormData): Promise<ImportRe
     }
 
     try {
-      const uploaded = await uploadPhoto({
-        buffer,
-        filename: file.name,
-        mimeType: file.type || "image/jpeg",
-        folderId: targetFolder,
-        alsoInFolderId: folders.allMedia,
-      });
-
       const { data: student } = await supabase
         .from("students")
-        .select("name, dept_code, hue")
+        .select("name, reg_no, dept_code, hue")
         .eq("id", studentId)
         .maybeSingle();
+
+      const path = `${category.toLowerCase()}/${student?.reg_no ?? studentId}/${Date.now()}-${safeName(file.name)}`;
+
+      const { error: upErr } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .upload(path, buffer, {
+          contentType: file.type || "image/jpeg",
+          upsert: false,
+        });
+
+      if (upErr) throw new Error(upErr.message);
 
       await supabase.from("media").insert({
         student_id: studentId,
@@ -145,18 +141,10 @@ export async function importCeremonyPhotos(formData: FormData): Promise<ImportRe
         taken_at: taken.toISOString(),
         captured_at: taken.toISOString(),
         original_name: file.name,
-        drive_file_id: uploaded.id,
-        drive_view_url: uploaded.viewUrl,
-        drive_thumb_url: uploaded.thumbUrl,
-        drive_folder_id: uploaded.folderId,
+        storage_path: path,
+        storage_bucket: PHOTO_BUCKET,
         imported_by: auth.user.id,
       });
-
-      // Keep the graduate's own counter in step with the archive.
-      await supabase.rpc("complete_booth", { p_student_id: studentId, p_photos: 0 }).then(
-        () => undefined,
-        () => undefined,
-      );
 
       result.uploaded += 1;
       result.matched += 1;
@@ -178,4 +166,27 @@ export async function importCeremonyPhotos(formData: FormData): Promise<ImportRe
   revalidatePath("/gallery");
   revalidatePath("/photos");
   return result;
+}
+
+/**
+ * Short-lived signed URLs for a graduate's own photos.
+ *
+ * The bucket is private, so this is how the hub displays images without
+ * making the archive world-readable.
+ */
+export async function signPhotoUrls(paths: string[], expiresInSeconds = 3600) {
+  if (paths.length === 0) return {};
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .createSignedUrls(paths, expiresInSeconds);
+
+  if (error || !data) return {};
+
+  const map: Record<string, string> = {};
+  for (const row of data) {
+    if (row.path && row.signedUrl) map[row.path] = row.signedUrl;
+  }
+  return map;
 }

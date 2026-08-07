@@ -15,6 +15,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/feedback";
 import { connectDrive, type DriveStatus } from "@/lib/drive-actions";
 
+/*
+ * Google service accounts have no storage quota on My Drive, so they can
+ * create folders there but cannot upload files. Photos therefore live in
+ * Supabase Storage; Drive stays useful as a browsable archive folder.
+ */
 const SETUP_STEPS = [
   "Google Cloud Console → create a project",
   "APIs & Services → Library → enable Google Drive API",

@@ -161,6 +161,7 @@ export type Database = {
           likes: number
           photographer: string
           ratio: number
+          storage_bucket: string | null
           storage_path: string | null
           student_id: string | null
           title: string
@@ -181,6 +182,7 @@ export type Database = {
           likes?: number
           photographer: string
           ratio?: number
+          storage_bucket?: string | null
           storage_path?: string | null
           student_id?: string | null
           title: string
@@ -201,6 +203,7 @@ export type Database = {
           likes?: number
           photographer?: string
           ratio?: number
+          storage_bucket?: string | null
           storage_path?: string | null
           student_id?: string | null
           title?: string
