@@ -269,8 +269,14 @@ export type Database = {
           booth_done_at: string | null
           certificate_done: boolean
           certificate_done_at: string | null
-          cgpa: number
+          award: string | null
+          cgpa: number | null
           checked_in_at: string | null
+          father_name: string | null
+          honours: boolean
+          minor: boolean
+          mother_name: string | null
+          seat_no: number | null
           created_at: string
           dept_code: string
           hub_token: string
@@ -296,8 +302,14 @@ export type Database = {
           booth_done_at?: string | null
           certificate_done?: boolean
           certificate_done_at?: string | null
-          cgpa: number
+          award?: string | null
+          cgpa?: number | null
           checked_in_at?: string | null
+          father_name?: string | null
+          honours?: boolean
+          minor?: boolean
+          mother_name?: string | null
+          seat_no?: number | null
           created_at?: string
           dept_code: string
           hub_token?: string
@@ -323,8 +335,14 @@ export type Database = {
           booth_done_at?: string | null
           certificate_done?: boolean
           certificate_done_at?: string | null
-          cgpa?: number
+          award?: string | null
+          cgpa?: number | null
           checked_in_at?: string | null
+          father_name?: string | null
+          honours?: boolean
+          minor?: boolean
+          mother_name?: string | null
+          seat_no?: number | null
           created_at?: string
           dept_code?: string
           hub_token?: string

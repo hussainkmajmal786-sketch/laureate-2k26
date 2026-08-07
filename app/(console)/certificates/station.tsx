@@ -101,9 +101,16 @@ export function CertificateStation({ college }: { college: string }) {
 
                       <dl className="mt-7 grid grid-cols-3 gap-2 border-t border-[rgb(var(--rule))] pt-5 text-left">
                         {[
-                          ["CGPA", Number(current.cgpa).toFixed(2)],
-                          ["Batch", current.batch],
-                          ["Class", classOf(Number(current.cgpa))],
+                          ...(current.cgpa != null
+                            ? ([
+                                ["CGPA", Number(current.cgpa).toFixed(2)],
+                                ["Class", classOf(Number(current.cgpa))],
+                              ] as [string, string][])
+                            : []),
+                          ["Batch", current.batch] as [string, string],
+                          ...(current.award
+                            ? ([["Award", current.award]] as [string, string][])
+                            : []),
                         ].map(([k, v]) => (
                           <div key={k}>
                             <dt className="stencil text-ink-3">{k}</dt>

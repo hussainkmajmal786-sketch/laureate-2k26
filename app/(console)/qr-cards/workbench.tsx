@@ -111,7 +111,7 @@ export function QrCardsWorkbench({
             <textarea
               value={pasted}
               onChange={(e) => setPasted(e.target.value)}
-              placeholder={"CEK22CSE001\nCEK22CSE002"}
+              placeholder={"KGR22CS001\nLKGR22EC040"}
               className="h-24 w-full resize-none  bg-paper-2 px-3 py-2.5 font-mono text-[12px] text-ink rule outline-none placeholder:text-ink-3 focus:bg-paper focus:ring-2 focus:ring-[rgb(var(--accent))]" />
             <Button block onClick={() => importNumbers(pasted)} disabled={loading || !pasted.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

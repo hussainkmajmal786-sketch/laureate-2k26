@@ -16,7 +16,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { LandingCounters, ThemeToggle } from "./landing-client";
 import { formatNumber } from "@/lib/utils";
-import { DEPARTMENTS as FALLBACK_DEPARTMENTS, TOTAL_GRADUATES } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +32,7 @@ const CAPABILITIES = [
 
 const MARQUEE = [
   "CLASS OF 2026", "★", "COLLEGE OF ENGINEERING KIDANGOOR", "★",
-  "2,047 GRADUATES", "★", "SEVEN DEPARTMENTS", "★", "ONE DAY", "★",
+  "ONE DAY", "★", "EVERY STATION CONNECTED", "★",
 ];
 
 export default async function Landing() {
@@ -41,13 +40,6 @@ export default async function Landing() {
   let settings: { status?: string | null; event_date?: string | null; college?: string | null; venue?: string | null; tagline?: string | null } | null = null;
   let depts: Array<{ code: string; name: string; color: string }> = [];
   let totals = new Map<string, number>();
-
-  /** Ships the built-in cohort so the public page still renders. */
-  function applyFallback() {
-    depts = FALLBACK_DEPARTMENTS.map(({ code, name, color }) => ({ code, name, color }));
-    totals = new Map(FALLBACK_DEPARTMENTS.map((d) => [d.code, d.total]));
-    stats = { total: TOTAL_GRADUATES, checked_in: 1519, photos: 1052 };
-  }
 
   try {
     const supabase = await createClient();
@@ -64,9 +56,7 @@ export default async function Landing() {
      * Treat "no departments" as the signal that the query really failed —
      * otherwise the page renders with an empty cohort and no cards.
      */
-    if (deptRes.error || !deptRes.data?.length) {
-      applyFallback();
-    } else {
+    if (!deptRes.error && deptRes.data?.length) {
       stats = statsRes.data;
       settings = settingsRes.data;
       depts = deptRes.data;
@@ -75,16 +65,13 @@ export default async function Landing() {
           .filter((d) => Boolean(d.code))
           .map((d) => [d.code as string, d.total ?? 0]),
       );
-      if (totals.size === 0) {
-        totals = new Map(FALLBACK_DEPARTMENTS.map((d) => [d.code, d.total]));
-      }
     }
   } catch {
-    // Network-level failure (DNS, TLS) does still throw.
-    applyFallback();
+    // Network-level failure. The page still renders; the counts read zero,
+    // which is honest rather than showing invented numbers.
   }
 
-  const total = stats?.total ?? TOTAL_GRADUATES;
+  const total = stats?.total ?? 0;
   const topTotal = Math.max(...[...totals.values()], 1);
 
   return (

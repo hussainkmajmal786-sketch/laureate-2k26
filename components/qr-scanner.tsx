@@ -183,7 +183,7 @@ export function QrScanner({
             <div className="mt-2.5 flex gap-2">
               <input
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="CEK22CSE118"
+                onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="KGR22CS042"
                 autoFocus
                 className="h-12 w-full rule bg-paper px-3 font-mono text-[14px] font-medium tracking-widest text-ink outline-none placeholder:text-ink-3 focus:drop-2" />
               <Button type="submit" size="lg" variant="pop" disabled={scanning}>

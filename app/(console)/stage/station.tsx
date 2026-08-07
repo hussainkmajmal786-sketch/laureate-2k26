@@ -118,7 +118,7 @@ export function StageStation({
                           style={{ backgroundColor: deptColor(current.dept_code) }} />
                         {current.dept_code}
                       </span>
-                      <span>CGPA {Number(current.cgpa).toFixed(2)}</span>
+                      {current.cgpa != null && <span>CGPA {Number(current.cgpa).toFixed(2)}</span>}
                       <span>{current.batch}</span>
                     </div>
                   </div>

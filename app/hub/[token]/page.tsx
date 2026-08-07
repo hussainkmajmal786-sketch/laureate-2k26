@@ -123,7 +123,8 @@ export default async function GraduateHub({ params }: { params: Promise<{ token:
                 {s.reg_no} · {s.dept_code}
               </p>
               <p className="mt-1 font-mono text-[12px] text-[rgb(var(--paper))]/65">
-                B.TECH · {s.batch} · CGPA {Number(s.cgpa).toFixed(2)}
+                B.TECH · {s.batch}
+                {s.cgpa != null && ` · CGPA ${Number(s.cgpa).toFixed(2)}`}
               </p>
             </div>
           </div>

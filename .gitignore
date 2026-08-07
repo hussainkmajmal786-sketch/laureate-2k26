@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Student personal data — names, register numbers, parents. Keep local.
+*.xlsx
+*.xls
+/supabase/migrations/*_real_cohort.sql

@@ -72,8 +72,8 @@ export default function LoginPage() {
               one console.
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-[rgb(var(--paper))]/60 text-pretty">
-              Registration, stage flow, photo booths, lunch and certificates — tracking 2,047
-              graduates through a single day.
+              Registration, stage flow, photo booths, lunch and certificates — tracking every
+              graduate through a single day.
             </p>
           </div>
 

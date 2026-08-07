@@ -149,7 +149,9 @@ export function StudentsTable({
                         <Avatar name={s.name} hue={s.hue} src={s.photo_url} size="sm" ring={false} />
                         <div className="min-w-0">
                           <p className="truncate text-[13.5px] font-semibold text-ink">{s.name}</p>
-                          <p className="text-[11.5px] text-ink-3">CGPA {Number(s.cgpa).toFixed(2)}</p>
+                          {s.cgpa != null && (
+                            <p className="text-[11.5px] text-ink-3">CGPA {Number(s.cgpa).toFixed(2)}</p>
+                          )}
                         </div>
                       </div>
                     </td>

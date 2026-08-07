@@ -96,7 +96,7 @@ export function StudentCard({
                 {student.dept_code}
               </span>
               <span className="text-ink-3">/</span>
-              <span>CGPA {Number(student.cgpa).toFixed(2)}</span>
+              {student.cgpa != null && <span>CGPA {Number(student.cgpa).toFixed(2)}</span>}
               {!compact && student.phone && (
                 <>
                   <span className="text-ink-3">/</span>
