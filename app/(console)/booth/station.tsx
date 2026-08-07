@@ -8,14 +8,13 @@ import {
   CircleCheck,
   Play,
   ScanLine,
-  Upload,
   UserRound,
   Users,
   UsersRound,
 } from "lucide-react";
 import { Card, BlockPanel } from "@/components/ui/card";
 import { StudentCard, StudentRowItem } from "@/components/student-card";
-import { UploadCard, makeShot, type Shot } from "@/components/upload-card";
+import { CameraCapture, type CapturedShot } from "@/components/camera-capture";
 import { QrScanner } from "@/components/qr-scanner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,12 +49,13 @@ export function BoothStation({
 
   const [current, setCurrent] = React.useState<StudentRow | null>(null);
   const [started, setStarted] = React.useState(false);
-  const [shots, setShots] = React.useState<Shot[]>([]);
+  const [shots, setShots] = React.useState<CapturedShot[]>([]);
   const [success, setSuccess] = React.useState(false);
   const [pending, setPending] = React.useState(false);
   const [justScanned, setJustScanned] = React.useState<StudentRow[]>([]);
   const { push } = useToast();
 
+  const saved = shots.filter((x) => !x.uploading && !x.failed);
   const covered = new Set(shots.map((s) => s.label as ShotKind));
   const progress = Math.round((covered.size / REQUIRED.length) * 100);
 
@@ -203,48 +203,57 @@ export function BoothStation({
                         </Badge>
                       } >
                       <div className="p-5">
-                        <UploadCard
+                        {/*
+                         * The shutter uploads immediately against the graduate
+                         * who is currently scanned in, so a frame can never be
+                         * filed under the wrong person.
+                         */}
+                        <CameraCapture
+                          studentId={current.id}
+                          studentName={current.name}
+                          category="Booth"
+                          label={`Booth ${boothId}`}
                           shots={shots}
-                          onAdd={(l) => setShots((s) => [...s, makeShot(l)])}
-                          onRemove={(id) => setShots((s) => s.filter((x) => x.id !== id))} title="No frames yet" description="Choose a category below to add the first shot"
-                          actions={
-                            <div className="grid gap-2 sm:grid-cols-3">
-                              {REQUIRED.map((kind) => {
-                                const Icon = KIND_ICON[kind];
-                                const done = covered.has(kind);
-                                return (
-                                  <Button
-                                    key={kind} size="lg"
-                                    variant={done ? "soft" : "secondary"}
-                                    block
-                                    onClick={() => setShots((s) => [...s, makeShot(kind)])} >
-                                    {done ? (
-                                      <CircleCheck className="h-[18px] w-[18px]" />
-                                    ) : (
-                                      <Icon className="h-[18px] w-[18px]" />
-                                    )}
-                                    {kind}
-                                  </Button>
-                                );
-                              })}
-                            </div>
-                          } />
+                          onShot={(shot) =>
+                            setShots((prev) => {
+                              const i = prev.findIndex((x) => x.id === shot.id);
+                              if (i === -1) return [...prev, shot];
+                              const next = [...prev];
+                              next[i] = shot;
+                              return next;
+                            })
+                          }
+                          disabled={pending} />
 
-                        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                          <Button size="lg" variant="secondary"
-                            block
-                            onClick={() => setShots((s) => [...s, makeShot("Extra")])} >
-                            <Upload className="h-[18px] w-[18px]" />
-                            Upload extra frame
-                          </Button>
-                          <Button size="lg" variant="success"
-                            block
-                            onClick={complete}
-                            disabled={shots.length === 0 || pending} >
-                            <CircleCheck className="h-[18px] w-[18px]" />
-                            {pending ? "Saving…" : "Complete session"}
-                          </Button>
+                        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                          {REQUIRED.map((kind) => {
+                            const Icon = KIND_ICON[kind];
+                            const done = covered.has(kind);
+                            return (
+                              <div
+                                key={kind}
+                                className={`flex items-center justify-center gap-2 rule px-3 py-2.5 text-[12.5px] font-bold ${
+                                  done ? "bg-ok text-ink-black" : "bg-paper-2 text-ink-3"
+                                }`} >
+                                {done ? (
+                                  <CircleCheck className="h-4 w-4" />
+                                ) : (
+                                  <Icon className="h-4 w-4" />
+                                )}
+                                {kind}
+                              </div>
+                            );
+                          })}
                         </div>
+
+                        <Button size="lg" variant="success"
+                          block
+                          className="mt-3"
+                          onClick={complete}
+                          disabled={saved.length === 0 || pending} >
+                          <CircleCheck className="h-[18px] w-[18px]" />
+                          {pending ? "Saving…" : "Complete session"}
+                        </Button>
                       </div>
                     </BlockPanel>
                   </motion.div>
