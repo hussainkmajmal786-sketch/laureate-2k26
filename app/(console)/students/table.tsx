@@ -3,15 +3,26 @@
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Eye, QrCode, SearchX, SlidersHorizontal } from "lucide-react";
+import {
+  CheckCheck,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Loader2,
+  QrCode,
+  SearchX,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, StatusChip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchBar, Segmented, Select } from "@/components/ui/input";
-import { EmptyState, Modal } from "@/components/ui/feedback";
+import { EmptyState, Modal, useToast } from "@/components/ui/feedback";
 import { StudentCard, deptColor } from "@/components/student-card";
 import { formatNumber } from "@/lib/utils";
+import { bulkCheckIn, studentIdsMatching } from "@/lib/actions";
 import type { DepartmentRow, StudentRow } from "@/lib/supabase/types";
 
 type Status = "all" | "checked-in" | "waiting" | "complete";
@@ -36,6 +47,66 @@ export function StudentsTable({
   const [preview, setPreview] = React.useState<StudentRow | null>(null);
   const [search, setSearch] = React.useState(filters.q);
   const [isPending, startTransition] = React.useTransition();
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [working, setWorking] = React.useState(false);
+  const { push } = useToast();
+
+  const pageIds = students.map((s) => s.id);
+  const pageAllSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+  const pageSomeSelected = pageIds.some((id) => selected.has(id));
+
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const togglePage = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (pageAllSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+  /*
+   * The table is paginated on the server, so "select all" has to ask for
+   * every id matching the current filters — not just the rows on screen.
+   */
+  const selectAllMatching = async () => {
+    setWorking(true);
+    const ids = await studentIdsMatching(filters);
+    setWorking(false);
+    setSelected(new Set(ids));
+    push({ title: `${ids.length} selected`, description: "Everyone matching the current filters", tone: "info" });
+  };
+
+  const checkInSelected = async () => {
+    if (selected.size === 0 || working) return;
+    setWorking(true);
+    const result = await bulkCheckIn([...selected]);
+    setWorking(false);
+
+    if (!result.ok && !result.data) {
+      push({ title: "Could not check in", description: result.error, tone: "bad" });
+      return;
+    }
+
+    const d = result.data!;
+    push({
+      title: `${d.checkedIn} checked in`,
+      description: [
+        d.alreadyPresent ? `${d.alreadyPresent} already present` : null,
+        d.failed.length ? `${d.failed.length} failed` : null,
+      ].filter(Boolean).join(" · ") || "All done",
+      tone: d.failed.length ? "warn" : "ok",
+    });
+
+    setSelected(new Set());
+    router.refresh();
+  };
 
   /** Filters live in the URL so the server can do the querying. */
   const setParam = React.useCallback(
@@ -114,6 +185,42 @@ export function StudentsTable({
         )}
       </div>
 
+      {/* Bulk actions — only present when something is selected. */}
+      {selected.size > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-3 flex flex-wrap items-center gap-2.5 rule bg-accent px-4 py-3" >
+          <p className="text-[13px] font-bold text-accent-ink">
+            {formatNumber(selected.size)} selected
+          </p>
+
+          {selected.size < total && (
+            <button
+              onClick={selectAllMatching}
+              disabled={working}
+              className="text-[12.5px] font-medium text-accent-ink underline underline-offset-2" >
+              Select all {formatNumber(total)} matching
+            </button>
+          )}
+
+          <div className="ml-auto flex items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setSelected(new Set())}>
+              <X className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+            <Button size="sm" variant="success" onClick={checkInSelected} disabled={working}>
+              {working ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <CheckCheck className="h-3.5 w-3.5" />
+              )}
+              {working ? "Checking in…" : "Check in selected"}
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       <Card className="overflow-hidden">
         {students.length === 0 ? (
           <EmptyState
@@ -129,8 +236,20 @@ export function StudentsTable({
             <table className="w-full min-w-[1040px] border-collapse text-left">
               <thead>
                 <tr className="border-b border-[rgb(var(--rule))]">
+                  <th className="py-3 pr-2 pl-5">
+                    <input
+                      type="checkbox"
+                      aria-label="Select every graduate on this page"
+                      className="h-4 w-4 accent-[rgb(var(--accent))]"
+                      checked={pageAllSelected}
+                      ref={(el) => {
+                        // Indeterminate shows "some but not all" — it cannot be set in JSX.
+                        if (el) el.indeterminate = pageSomeSelected && !pageAllSelected;
+                      }}
+                      onChange={togglePage} />
+                  </th>
                   {["Graduate", "Register No.", "Dept", "QR", "Attendance", "Stage", "Booth", "Lunch", ""].map((h) => (
-                    <th key={h} className="stencil px-4 py-3 text-ink-3 first:pl-5 last:pr-5">
+                    <th key={h} className="stencil px-4 py-3 text-ink-3 last:pr-5">
                       {h}
                     </th>
                   ))}
@@ -143,8 +262,18 @@ export function StudentsTable({
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.02, duration: 0.3 }}
-                    className="group transition-colors hover:bg-paper-2" >
-                    <td className="py-3 pr-4 pl-5">
+                    className={`group transition-colors hover:bg-paper-2 ${
+                      selected.has(s.id) ? "bg-accent/8" : ""
+                    }`} >
+                    <td className="py-3 pr-2 pl-5">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${s.name}`}
+                        className="h-4 w-4 accent-[rgb(var(--accent))]"
+                        checked={selected.has(s.id)}
+                        onChange={() => toggleOne(s.id)} />
+                    </td>
+                    <td className="py-3 pr-4 pl-4">
                       <div className="flex items-center gap-3">
                         <Avatar name={s.name} hue={s.hue} src={s.photo_url} size="sm" ring={false} />
                         <div className="min-w-0">

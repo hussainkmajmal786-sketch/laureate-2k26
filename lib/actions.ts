@@ -40,6 +40,78 @@ export async function checkInStudent(studentId: string, station?: string): Promi
   return { ok: true, data: data as StudentRow };
 }
 
+
+/**
+ * Checks in several graduates at once.
+ *
+ * Each one still goes through check_in_student, so every graduate gets
+ * their own audit row and an already-present student is a harmless no-op
+ * rather than a duplicate. Reports per-student failures instead of
+ * abandoning the whole batch, because a partial success at a busy gate is
+ * far more useful than an all-or-nothing error.
+ */
+export async function bulkCheckIn(
+  studentIds: string[],
+  station?: string,
+): Promise<ActionResult<{ checkedIn: number; alreadyPresent: number; failed: string[] }>> {
+  if (studentIds.length === 0) return { ok: false, error: "No graduates selected." };
+
+  const supabase = await createClient();
+
+  // Anyone already present should be reported, not counted as a new arrival.
+  const { data: before } = await supabase
+    .from("students")
+    .select("id, attendance")
+    .in("id", studentIds);
+
+  const alreadyPresent = (before ?? []).filter((s) => s.attendance).length;
+  const todo = (before ?? []).filter((s) => !s.attendance).map((s) => s.id);
+
+  const failed: string[] = [];
+  let checkedIn = 0;
+
+  for (const id of todo) {
+    const { error } = await supabase.rpc("check_in_student", {
+      p_student_id: id,
+      p_station: station ?? "Bulk check-in",
+    });
+    if (error) failed.push(id);
+    else checkedIn += 1;
+  }
+
+  revalidatePath("/students");
+  revalidatePath("/registration");
+  revalidatePath("/dashboard");
+
+  return {
+    ok: failed.length < todo.length || todo.length === 0,
+    data: { checkedIn, alreadyPresent, failed },
+    error: failed.length ? `${failed.length} could not be checked in.` : undefined,
+  };
+}
+
+/** Every graduate id matching the current filters, for "select all". */
+export async function studentIdsMatching(filters: {
+  q?: string;
+  dept?: string;
+  status?: string;
+}): Promise<string[]> {
+  const supabase = await createClient();
+  let query = supabase.from("students").select("id");
+
+  if (filters.dept && filters.dept !== "all") query = query.eq("dept_code", filters.dept);
+  if (filters.status === "checked-in") query = query.eq("attendance", true);
+  if (filters.status === "waiting") query = query.eq("attendance", false);
+  if (filters.status === "complete") query = query.eq("certificate_done", true);
+  if (filters.q) {
+    const term = filters.q.replace(/[%,]/g, "");
+    query = query.or(`name.ilike.%${term}%,reg_no.ilike.%${term}%`);
+  }
+
+  const { data } = await query.limit(5000);
+  return (data ?? []).map((r) => r.id);
+}
+
 /* ── Stage ───────────────────────────────────────────────── */
 
 /**
