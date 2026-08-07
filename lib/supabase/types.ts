@@ -573,6 +573,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: Json
       }
+      student_by_hub_token: {
+        Args: { p_token: string }
+        Returns: Database["public"]["Tables"]["students"]["Row"][]
+      }
       redeem_lunch: {
         Args: { p_student_id: string }
         Returns: Database["public"]["Tables"]["students"]["Row"]
