@@ -30,7 +30,7 @@ export function StudentQrCard({
   compact?: boolean;
 }) {
   const [src, setSrc] = React.useState("");
-  const path = `/student/${student.id}`;
+  const path = `/hub/${student.hub_token}`;
   const accent = deptColor(student.dept_code);
   const quote = quoteFor(student.reg_no);
 

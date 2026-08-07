@@ -91,6 +91,10 @@ export type Database = {
         Row: {
           auto_assign: boolean
           college: string
+          drive_connected: boolean
+          drive_root_folder: string | null
+          stream_live: boolean
+          stream_url: string | null
           duplicate_block: boolean
           event_date: string
           holding_capacity: number
@@ -105,6 +109,10 @@ export type Database = {
         Insert: {
           auto_assign?: boolean
           college: string
+          drive_connected?: boolean
+          drive_root_folder?: string | null
+          stream_live?: boolean
+          stream_url?: string | null
           duplicate_block?: boolean
           event_date: string
           holding_capacity?: number
@@ -119,6 +127,10 @@ export type Database = {
         Update: {
           auto_assign?: boolean
           college?: string
+          drive_connected?: boolean
+          drive_root_folder?: string | null
+          stream_live?: boolean
+          stream_url?: string | null
           duplicate_block?: boolean
           event_date?: string
           holding_capacity?: number
@@ -136,6 +148,13 @@ export type Database = {
         Row: {
           captured_at: string
           category: Database["public"]["Enums"]["media_category"]
+          drive_file_id: string | null
+          drive_folder_id: string | null
+          drive_thumb_url: string | null
+          drive_view_url: string | null
+          imported_by: string | null
+          original_name: string | null
+          taken_at: string | null
           dept_code: string | null
           hue: number
           id: string
@@ -149,6 +168,13 @@ export type Database = {
         Insert: {
           captured_at?: string
           category: Database["public"]["Enums"]["media_category"]
+          drive_file_id?: string | null
+          drive_folder_id?: string | null
+          drive_thumb_url?: string | null
+          drive_view_url?: string | null
+          imported_by?: string | null
+          original_name?: string | null
+          taken_at?: string | null
           dept_code?: string | null
           hue?: number
           id?: string
@@ -162,6 +188,13 @@ export type Database = {
         Update: {
           captured_at?: string
           category?: Database["public"]["Enums"]["media_category"]
+          drive_file_id?: string | null
+          drive_folder_id?: string | null
+          drive_thumb_url?: string | null
+          drive_view_url?: string | null
+          imported_by?: string | null
+          original_name?: string | null
+          taken_at?: string | null
           dept_code?: string | null
           hue?: number
           id?: string
@@ -204,6 +237,30 @@ export type Database = {
         }
         Relationships: []
       }
+      stage_appearances: {
+        Row: {
+          ended_at: string | null
+          id: string
+          started_at: string
+          student_id: string
+          volunteer_id: string | null
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          student_id: string
+          volunteer_id?: string | null
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          student_id?: string
+          volunteer_id?: string | null
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           attendance: boolean
@@ -216,6 +273,7 @@ export type Database = {
           checked_in_at: string | null
           created_at: string
           dept_code: string
+          hub_token: string
           hue: number
           id: string
           lunch_done: boolean
@@ -242,6 +300,7 @@ export type Database = {
           checked_in_at?: string | null
           created_at?: string
           dept_code: string
+          hub_token?: string
           hue?: number
           id?: string
           lunch_done?: boolean
@@ -268,6 +327,7 @@ export type Database = {
           checked_in_at?: string | null
           created_at?: string
           dept_code?: string
+          hub_token?: string
           hue?: number
           id?: string
           lunch_done?: boolean
@@ -450,6 +510,10 @@ export type Database = {
       complete_stage: {
         Args: { p_photos?: number; p_student_id: string }
         Returns: Database["public"]["Tables"]["students"]["Row"]
+      }
+      get_student_hub: {
+        Args: { p_token: string }
+        Returns: Json
       }
       redeem_lunch: {
         Args: { p_student_id: string }

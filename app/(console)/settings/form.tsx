@@ -6,6 +6,7 @@ import {
   Building2,
   Camera,
   CloudUpload,
+  MonitorPlay,
   GraduationCap,
   Lock,
   Palette,
@@ -28,6 +29,7 @@ const SECTIONS = [
   { id: "departments", label: "Departments", icon: Building2 },
   { id: "queue", label: "Queue settings", icon: Timer },
   { id: "booths", label: "Booths", icon: Camera },
+  { id: "stream", label: "Live stream", icon: MonitorPlay },
   { id: "drive", label: "Google Drive", icon: CloudUpload },
   { id: "notifications", label: "Notifications", icon: Bell },
 ];
@@ -56,6 +58,8 @@ export function SettingsForm({
     tv_ticker: settings?.tv_ticker ?? true,
     queue_warn_at: settings?.queue_warn_at ?? 25,
     holding_capacity: settings?.holding_capacity ?? 300,
+    stream_url: settings?.stream_url ?? "",
+    stream_live: settings?.stream_live ?? false,
   });
 
   const patch = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>

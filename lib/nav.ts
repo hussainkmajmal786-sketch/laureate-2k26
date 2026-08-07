@@ -4,6 +4,7 @@ import {
   QrCode,
   LayoutDashboard,
   Images,
+  ImageUp,
   MonitorPlay,
   ScanLine,
   ScrollText,
@@ -37,6 +38,7 @@ export const NAV: NavItem[] = [
   { href: "/lunch", label: "Lunch", icon: UtensilsCrossed, group: "Operations" },
   { href: "/certificates", label: "Certificates", icon: ScrollText, group: "Operations" },
 
+  { href: "/photos", label: "Photo Import", icon: ImageUp, group: "Records" },
   { href: "/gallery", label: "Media Gallery", icon: Images, group: "Records" },
   { href: "/students", label: "Students", icon: Users, group: "Records" },
   { href: "/volunteers", label: "Volunteers", icon: UsersRound, group: "Records" },

@@ -42,8 +42,40 @@ export async function checkInStudent(studentId: string, station?: string): Promi
 
 /* ── Stage ───────────────────────────────────────────────── */
 
+/**
+ * Opens a stage appearance window. Bulk photo import matches an EXIF
+ * timestamp against these windows, so calling this when a graduate is
+ * announced is what makes after-the-fact photo matching possible.
+ */
+export async function startStageAppearance(studentId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  // Close any window left open by a previous graduate.
+  await supabase
+    .from("stage_appearances")
+    .update({ ended_at: new Date().toISOString() })
+    .is("ended_at", null);
+
+  const { error } = await supabase.from("stage_appearances").insert({
+    student_id: studentId,
+    volunteer_id: auth.user?.id ?? null,
+  });
+
+  if (error) return { ok: false, error: friendly(error.message) };
+  return { ok: true };
+}
+
 export async function completeStage(studentId: string, photos = 1): Promise<ActionResult<StudentRow>> {
   const supabase = await createClient();
+
+  // Close this graduate's appearance window before recording completion.
+  await supabase
+    .from("stage_appearances")
+    .update({ ended_at: new Date().toISOString() })
+    .eq("student_id", studentId)
+    .is("ended_at", null);
+
   const { data, error } = await supabase.rpc("complete_stage", {
     p_student_id: studentId,
     p_photos: photos,
@@ -191,6 +223,9 @@ export async function updateEventSettings(input: {
   college?: string;
   venue?: string;
   event_date?: string;
+  stream_url?: string | null;
+  stream_live?: boolean;
+  drive_root_folder?: string | null;
   auto_assign?: boolean;
   duplicate_block?: boolean;
   tv_ticker?: boolean;

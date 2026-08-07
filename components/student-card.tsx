@@ -15,20 +15,9 @@ import type { CeremonyStage, StudentRow } from "@/lib/supabase/types";
 import { Avatar } from "./ui/avatar";
 import { Badge, StatusChip } from "./ui/badge";
 
-/** Department pigments, mirrored from the departments table. */
-export const DEPT_COLORS: Record<string, string> = {
-  CSE: "#2563eb",
-  ECE: "#10b981",
-  EEE: "#f59e0b",
-  ME: "#6d28d9",
-  CE: "#ec4899",
-  IT: "#06b6d4",
-  AIDS: "#ef4444",
-};
+import { deptColor } from "@/lib/dept-colors";
 
-export function deptColor(code: string) {
-  return DEPT_COLORS[code] ?? "#2563eb";
-}
+export { DEPT_COLORS, deptColor } from "@/lib/dept-colors";
 
 const STAGE_LABEL: Record<CeremonyStage, { label: string; tone: "accent" | "ok" | "warn" | "neutral" | "pop" }> = {
   registered: { label: "NOT CHECKED IN", tone: "neutral" },

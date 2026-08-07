@@ -1,8 +1,7 @@
 import { UsersRound } from "lucide-react";
 import { Page, PageHeader } from "@/components/shell/app-shell";
 import { Card, BlockPanel } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
-import { Badge, LiveBadge } from "@/components/ui/badge";
+import { LiveBadge } from "@/components/ui/badge";
 import { StatTile } from "@/components/kpi-card";
 import { ActivityFeed } from "@/components/timeline";
 import { EmptyState } from "@/components/ui/feedback";
@@ -11,26 +10,6 @@ import { getCurrentVolunteer } from "@/lib/supabase/server";
 import { VolunteerRoster } from "./roster";
 
 export const dynamic = "force-dynamic";
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Event Admin",
-  registration: "Registration",
-  stage: "Stage Coordinator",
-  booth: "Booth Operator",
-  counter: "Counter Staff",
-  media: "Media Runner",
-  viewer: "View Only",
-};
-
-const ROLE_TONE: Record<string, "accent" | "ok" | "warn" | "neutral"> = {
-  admin: "accent",
-  registration: "ok",
-  stage: "ok",
-  booth: "ok",
-  counter: "warn",
-  media: "warn",
-  viewer: "neutral",
-};
 
 export default async function VolunteersPage() {
   const [volunteers, activity, scans, me] = await Promise.all([

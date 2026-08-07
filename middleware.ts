@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /** Routes reachable without signing in. The TV board is deliberately open. */
-const PUBLIC_ROUTES = ["/", "/login", "/signup", "/display", "/student", "/auth"];
+const PUBLIC_ROUTES = ["/", "/login", "/signup", "/display", "/hub", "/auth"];
 
 function isPublic(pathname: string) {
   return PUBLIC_ROUTES.some(

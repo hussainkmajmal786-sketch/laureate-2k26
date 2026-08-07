@@ -79,11 +79,17 @@ the API directly.
 ## Routes
 
 **Public** — `/` landing, `/login`, `/signup`, `/display` (TV queue board),
-`/student/[id]` (graduate hub, opened by QR).
+`/hub/[token]` (graduate hub, opened by scanning their QR pass).
 
 **Console** (sign-in required) — `/dashboard`, `/registration`, `/stage`,
 `/booth`, `/queue`, `/lunch`, `/certificates`, `/gallery`, `/students`,
-`/volunteers`, `/reports`, `/settings`, `/qr-cards`.
+`/volunteers`, `/reports`, `/settings`, `/qr-cards`, `/photos`.
+
+## Ceremony workflow
+
+See **[WORKFLOW.md](WORKFLOW.md)** for the full day-before / day-of / after
+sequence: importing students, printing QR passes, running the stations, the
+live stream, and bulk photo import into Google Drive.
 
 ## Not wired up
 
@@ -92,6 +98,4 @@ Honest list of what is interface-only in this build:
 - **Camera scanning.** The QR reader resolves register numbers against the live
   database, but does not open a camera. "Next in queue" pulls a real eligible
   graduate; manual entry accepts any register number.
-- **Photo storage.** Booth sessions record frame *counts* against a graduate.
-  The image files themselves are not uploaded anywhere.
-- **Google Drive sync** and **file exports** are labelled placeholders.
+- **CSV exports** on the Reports screen are labelled placeholders.

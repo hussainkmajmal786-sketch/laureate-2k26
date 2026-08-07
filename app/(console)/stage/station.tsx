@@ -11,7 +11,7 @@ import { ProgressSteps } from "@/components/timeline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState, SuccessDialog, useToast } from "@/components/ui/feedback";
-import { completeStage } from "@/lib/actions";
+import { completeStage, startStageAppearance } from "@/lib/actions";
 import type { StudentRow } from "@/lib/supabase/types";
 
 const STEPS = ["Called", "On stage", "Photo captured", "Cleared"];
@@ -59,7 +59,17 @@ export function StageStation({
     setQueue(rest);
     setShots([]);
     setStep(1);
-    if (next) push({ title: "Called to stage", description: next.name, tone: "info" });
+
+    if (next) {
+      push({ title: "Called to stage", description: next.name, tone: "info" });
+      /*
+       * Open a stage appearance window. Bulk photo import later matches
+       * each photo's EXIF timestamp against these windows, so a graduate
+       * who is never "called" here cannot have photos matched to them.
+       */
+      void startStageAppearance(next.id);
+    }
+
     // Pull a fresh queue once the local buffer runs low.
     if (rest.length <= 1) router.refresh();
   };
