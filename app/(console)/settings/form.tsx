@@ -9,6 +9,7 @@ import {
   MonitorPlay,
   GraduationCap,
   Lock,
+  LogIn,
   Palette,
   Save,
   Timer,
@@ -20,6 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/feedback";
 import { useTheme } from "@/components/theme-provider";
 import { DrivePanel } from "./drive-panel";
+import { GooglePanel } from "./google-panel";
+import type { OAuthStatus } from "@/lib/google-oauth";
 import type { DriveStatus } from "@/lib/drive-actions";
 import { updateEventSettings } from "@/lib/actions";
 import { cn } from "@/lib/utils";
@@ -32,6 +35,7 @@ const SECTIONS = [
   { id: "queue", label: "Queue settings", icon: Timer },
   { id: "booths", label: "Booths", icon: Camera },
   { id: "stream", label: "Live stream", icon: MonitorPlay },
+  { id: "google", label: "Google account", icon: LogIn },
   { id: "drive", label: "Google Drive", icon: CloudUpload },
   { id: "notifications", label: "Notifications", icon: Bell },
 ];
@@ -41,11 +45,17 @@ export function SettingsForm({
   departments,
   isAdmin,
   drive,
+  googleAuth,
+  googleRedirectUri,
+  driveResult,
 }: {
   settings: EventSettingsRow | null;
   departments: DepartmentRow[];
   isAdmin: boolean;
   drive: DriveStatus;
+  googleAuth: OAuthStatus;
+  googleRedirectUri: string;
+  driveResult?: string;
 }) {
   const { theme, set } = useTheme();
   const [active, setActive] = React.useState("branding");
@@ -207,6 +217,25 @@ export function SettingsForm({
               Booth records live in the database and are edited from the Queue Monitor. Adding or
               renaming a booth requires an admin.
             </p>
+          </div>
+        </BlockPanel>
+
+        {/* Signing in as a real user is what makes uploads possible. */}
+        <BlockPanel
+          label="Google account"
+          tone={googleAuth.connected ? "ok" : "accent"}
+          className="scroll-mt-20"
+          action={
+            <Badge tone={googleAuth.connected ? "ok" : "warn"} size="sm" dot>
+              {googleAuth.connected ? "Connected" : "Not connected"}
+            </Badge>
+          } >
+          <div id="google">
+            <GooglePanel
+              status={googleAuth}
+              redirectUri={googleRedirectUri}
+              isAdmin={isAdmin}
+              result={driveResult} />
           </div>
         </BlockPanel>
 

@@ -26,11 +26,34 @@ export const FOLDERS = {
   group: "Group",
 } as const;
 
+/**
+ * Whether any Drive credential exists at all.
+ *
+ * Either route counts: OAuth (which can upload) or a service account
+ * (which can read and create folders but never store a file).
+ */
 export function isDriveConfigured() {
   return Boolean(
-    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY,
+    (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY) ||
+      (process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET),
   );
+}
+
+/**
+ * The Drive client to use for writes.
+ *
+ * Prefers the connected Google account: a service account has no storage
+ * quota and cannot upload to My Drive at all. Falls back to the service
+ * account, which still works for reading and for folder creation.
+ */
+async function getWriteClient(): Promise<drive_v3.Drive> {
+  try {
+    const { canUploadToDrive, driveAsUser } = await import("./google-oauth");
+    if (await canUploadToDrive()) return await driveAsUser();
+  } catch {
+    // OAuth unavailable; use the service account below.
+  }
+  return getClient();
 }
 
 function getClient(): drive_v3.Drive {
@@ -109,7 +132,7 @@ export interface DriveFolders {
  * account address as Editor.
  */
 export async function ensureEventFolders(rootFolderId?: string): Promise<DriveFolders> {
-  const drive = getClient();
+  const drive = await getWriteClient();
   const parent = rootFolderId || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
 
   const root = await ensureFolder(drive, FOLDERS.root, parent);
@@ -146,7 +169,7 @@ export async function uploadPhoto(input: {
   /** Second home for the "all media of the event" archive folder. */
   alsoInFolderId?: string;
 }): Promise<UploadedFile> {
-  const drive = getClient();
+  const drive = await getWriteClient();
 
   /*
    * Create with exactly one parent. Drive no longer accepts multiple

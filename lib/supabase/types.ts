@@ -144,6 +144,39 @@ export type Database = {
         }
         Relationships: []
       }
+      google_oauth: {
+        Row: {
+          access_token: string | null
+          account_email: string | null
+          connected_at: string
+          connected_by: string | null
+          expires_at: string | null
+          id: number
+          refresh_token: string | null
+          scope: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          account_email?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
+          scope?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          account_email?: string | null
+          connected_at?: string
+          connected_by?: string | null
+          expires_at?: string | null
+          id?: number
+          refresh_token?: string | null
+          scope?: string | null
+        }
+        Relationships: []
+      }
       media: {
         Row: {
           captured_at: string
