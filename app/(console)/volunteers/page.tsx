@@ -7,6 +7,8 @@ import { StatTile } from "@/components/kpi-card";
 import { ActivityFeed } from "@/components/timeline";
 import { EmptyState } from "@/components/ui/feedback";
 import { getRecentActivity, getScanCounts, getVolunteers } from "@/lib/queries";
+import { getCurrentVolunteer } from "@/lib/supabase/server";
+import { VolunteerRoster } from "./roster";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +33,11 @@ const ROLE_TONE: Record<string, "accent" | "ok" | "warn" | "neutral"> = {
 };
 
 export default async function VolunteersPage() {
-  const [volunteers, activity, scans] = await Promise.all([
+  const [volunteers, activity, scans, me] = await Promise.all([
     getVolunteers(),
     getRecentActivity(10),
     getScanCounts(),
+    getCurrentVolunteer(),
   ]);
 
   const online = volunteers.filter((v) => v.online).length;
@@ -59,52 +62,11 @@ export default async function VolunteersPage() {
                 icon={UsersRound} title="No volunteers yet" description="Volunteers appear here once they create an account. The first account to sign up becomes the event admin." />
             </Card>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {volunteers.map((v) => (
-                <Card key={v.id} interactive className="h-full overflow-hidden">
-                  <div className="flex items-start gap-3.5 p-4">
-                    <div className="relative">
-                      <Avatar name={v.name} hue={v.hue} size="md" ring={false} />
-                      <span
-                        className={`absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5  ring-2 ring-[rgb(var(--paper))] ${
-                          v.online ? "bg-ok" : "bg-ink-3"
-                        }`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-[14px] font-bold tracking-[-0.02em] text-ink">
-                            {v.name}
-                          </p>
-                          <p className="truncate text-[12px] text-ink-3">{v.email}</p>
-                        </div>
-                        <Badge tone={v.online ? "ok" : "neutral"} size="sm" dot>
-                          {v.online ? "Online" : "Offline"}
-                        </Badge>
-                      </div>
-
-                      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                        <Badge tone={ROLE_TONE[v.role] ?? "neutral"} size="sm">
-                          {ROLE_LABEL[v.role] ?? v.role}
-                        </Badge>
-                        {v.station && <Badge tone="neutral" size="sm">{v.station}</Badge>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 border-t border-[rgb(var(--rule))] p-4">
-                    <div className=" bg-paper-2 px-2.5 py-2 text-center">
-                      <p className="figure text-[16px] text-ink">{v.scans_today}</p>
-                      <p className="text-[10.5px] text-ink-3">Scans today</p>
-                    </div>
-                    <div className=" bg-paper-2 px-2.5 py-2 text-center">
-                      <p className="figure text-[16px] text-ink">{v.shift_ends ?? "—"}</p>
-                      <p className="text-[10.5px] text-ink-3">Shift ends</p>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            <VolunteerRoster
+              volunteers={volunteers}
+              isAdmin={me?.role === "admin"}
+              currentUserId={me?.id ?? null}
+            />
           )}
         </div>
 

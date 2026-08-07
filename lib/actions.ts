@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "./supabase/server";
-import type { StudentRow } from "./supabase/types";
+import type { StudentRow, TablesUpdate } from "./supabase/types";
 
 export interface ActionResult<T = unknown> {
   ok: boolean;
@@ -140,6 +140,47 @@ export async function addMedia(input: {
   if (error) return { ok: false, error: friendly(error.message) };
 
   revalidatePath("/gallery");
+  return { ok: true };
+}
+
+/* ── Volunteers ──────────────────────────────────────────── */
+
+export type VolunteerRoleValue =
+  | "admin"
+  | "registration"
+  | "stage"
+  | "booth"
+  | "counter"
+  | "media"
+  | "viewer";
+
+/**
+ * Assign a volunteer's role and station. Only admins may call this — the
+ * RLS policy on `volunteers` rejects everyone else, so this is enforced by
+ * the database rather than by hiding the button.
+ */
+export async function updateVolunteer(input: {
+  id: string;
+  role?: VolunteerRoleValue;
+  station?: string | null;
+  online?: boolean;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+
+  // Typed against the generated schema so a stray column cannot slip in.
+  const patch: TablesUpdate<"volunteers"> = {};
+  if (input.role !== undefined) patch.role = input.role;
+  if (input.station !== undefined) patch.station = input.station || null;
+  if (input.online !== undefined) patch.online = input.online;
+
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  const { error } = await supabase.from("volunteers").update(patch).eq("id", input.id);
+
+  if (error) return { ok: false, error: friendly(error.message) };
+
+  revalidatePath("/volunteers");
+  revalidatePath("/settings");
   return { ok: true };
 }
 

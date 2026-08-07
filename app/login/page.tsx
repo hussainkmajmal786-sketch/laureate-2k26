@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, GraduationCap, Loader2, MonitorPlay } from "lucide-react";
 import { signIn } from "@/lib/actions";
@@ -10,19 +10,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
-  // useSearchParams needs a Suspense boundary during prerender.
-  return (
-    <React.Suspense fallback={<div className="min-h-dvh bg-paper" />}>
-      <LoginContent />
-    </React.Suspense>
-  );
-}
-
-function LoginContent() {
   const router = useRouter();
-  const params = useSearchParams();
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
+
+  /*
+   * The post-login destination is read from window.location rather than
+   * useSearchParams(): that hook opts the whole subtree out of SSR, which
+   * left the server sending an empty page and no sign-in form at all.
+   */
+  const nextPath = React.useCallback(() => {
+    if (typeof window === "undefined") return "/dashboard";
+    const target = new URLSearchParams(window.location.search).get("next");
+    // Only allow same-site paths, so ?next= cannot bounce users off-site.
+    return target && target.startsWith("/") && !target.startsWith("//")
+      ? target
+      : "/dashboard";
+  }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,7 +41,7 @@ function LoginContent() {
       return;
     }
 
-    router.replace(params.get("next") || "/dashboard");
+    router.replace(nextPath());
     router.refresh();
   }
 
