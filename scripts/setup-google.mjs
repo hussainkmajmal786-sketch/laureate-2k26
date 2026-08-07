@@ -19,7 +19,7 @@ import { google } from "googleapis";
 import { Readable } from "node:stream";
 
 const PORT = 5478;
-const REDIRECT = `http://localhost:${PORT}/callback`;
+const LOOPBACK = `http://localhost:${PORT}/callback`;
 const ENV = ".env.local";
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -50,6 +50,35 @@ let env = readEnv();
 let clientId = env.GOOGLE_OAUTH_CLIENT_ID;
 let clientSecret = env.GOOGLE_OAUTH_CLIENT_SECRET;
 
+/*
+ * The deployed site is what volunteers actually use, so its callback is
+ * the one that must exist in the Cloud Console. The loopback URI is only
+ * needed by this script, which completes consent locally and stores the
+ * refresh token — the token works for the deployed site either way.
+ */
+const trimSlash = (u) => u.replace(/\/+$/, "");
+
+const savedSite = trimSlash(env.NEXT_PUBLIC_SITE_URL ?? "");
+
+console.log("\n  Where will volunteers actually use this?");
+console.log("  Example: https://laureate-2k26-1quz.vercel.app");
+if (savedSite) console.log(`  (press Enter to keep ${savedSite})`);
+else console.log("  (press Enter for http://localhost:3000)");
+
+const site =
+  trimSlash(await ask("\n  Site URL: ")) || savedSite || "http://localhost:3000";
+setEnv("NEXT_PUBLIC_SITE_URL", site);
+const siteCallback = `${site}/api/google/callback`;
+const localCallback = "http://localhost:3000/api/google/callback";
+
+const redirectList = [
+  `${siteCallback}${site.startsWith("http://localhost") ? "" : "   <- the live site"}`,
+  `${LOOPBACK}   <- lets this script finish setup`,
+  ...(siteCallback === localCallback ? [] : [`${localCallback}   <- local testing`]),
+]
+  .map((l) => `         ${l}`)
+  .join("\n");
+
 if (!clientId || !clientSecret) {
   console.log(`
   One step needs you, because Google requires a signed-in human:
@@ -57,10 +86,11 @@ if (!clientId || !clientSecret) {
     1. Open  https://console.cloud.google.com/apis/credentials
     2. Make sure the project is  ieee-vc-cek-main
     3. Create credentials  ->  OAuth client ID  ->  Web application
-    4. Under "Authorised redirect URIs" add BOTH of these:
+    4. Under "Authorised redirect URIs" add these:
 
-         ${REDIRECT}
-         http://localhost:3000/api/google/callback
+${redirectList}
+
+       Each must match exactly, including https and any port.
 
     5. Create, then copy the two values it shows you.
 
@@ -83,7 +113,7 @@ if (!clientId || !clientSecret) {
 }
 
 // ── Consent, handled locally ───────────────────────────────
-const oauth = new google.auth.OAuth2(clientId, clientSecret, REDIRECT);
+const oauth = new google.auth.OAuth2(clientId, clientSecret, LOOPBACK);
 const url = oauth.generateAuthUrl({
   access_type: "offline",
   prompt: "consent",
@@ -199,8 +229,15 @@ console.log(`
   ${"─".repeat(46)}
   Done. Restart the dev server and photos will upload to Drive.
 
-  Before deploying, add the same two values to Vercel and add
-  https://<your-domain>/api/google/callback to the redirect URIs.
+  For the deployed site, add these to Vercel -> Environment Variables
+  (Production, Preview and Development), then redeploy:
+
+    GOOGLE_OAUTH_CLIENT_ID
+    GOOGLE_OAUTH_CLIENT_SECRET
+    NEXT_PUBLIC_SITE_URL=${site || "https://your-domain"}
+
+  The refresh token just stored is shared, so the live site is already
+  connected once those are set.
 `);
 
 rl.close();
