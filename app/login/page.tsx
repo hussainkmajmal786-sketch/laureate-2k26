@@ -78,7 +78,7 @@ export default function LoginPage() {
           </div>
 
           <Link href="/display"
-            className="inline-flex w-fit items-center gap-2  bg-white/10 px-4 py-2.5 text-[13px] font-medium text-[rgb(var(--paper))]/80 backdrop-blur-sm transition-colors hover:bg-white/16 hover:text-white" >
+            className="inline-flex w-fit items-center gap-2  bg-[#232B44] px-4 py-2.5 text-[13px] font-medium text-[rgb(var(--paper))]/80 backdrop-blur-sm transition-colors hover:bg-[#2A3350] hover:text-white" >
             <MonitorPlay className="h-4 w-4" />
             Open the public queue board
           </Link>

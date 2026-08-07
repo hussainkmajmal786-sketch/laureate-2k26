@@ -54,30 +54,30 @@ export default async function Dashboard() {
   return (
     <Page wide>
       {/* ── Hero ─────────────────────────────────────────── */}
-      <div className="bg-[rgb(var(--ink))] grain relative mb-7 overflow-hidden  px-6 py-9 sm:px-10 sm:py-12">
-        <div className="animate-bob absolute -top-1/3 -left-20 h-[420px] w-[420px]  bg-indigo-500/25 blur-[110px]" />
-        <div className="animate-bob absolute -right-20 -bottom-1/3 h-[380px] w-[380px]  bg-cyan-400/20 blur-[100px]" />
+      <div className="grain relative mb-7 overflow-hidden rule drop-3 bg-[#0B0D14] px-6 py-9 sm:px-10 sm:py-12">
+        <div className="animate-bob absolute -top-1/3 -left-20 h-[420px] w-[420px]  bg-[#3B4FD8]/22 blur-[110px]" />
+        <div className="animate-bob absolute -right-20 -bottom-1/3 h-[380px] w-[380px]  bg-[#7C3AED]/16 blur-[100px]" />
 
         <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-2  bg-white/12 px-2.5 py-1 text-[11.5px] font-medium text-white/90 backdrop-blur-sm">
+              <span className="inline-flex items-center gap-2  bg-[#232B44] px-2.5 py-1 text-[11.5px] font-medium text-[#E8EDF9]">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping  bg-emerald-300 opacity-70" />
-                  <span className="relative inline-flex h-1.5 w-1.5  bg-emerald-300" />
+                  <span className="absolute inline-flex h-full w-full animate-ping  bg-[#4ADE80] opacity-70" />
+                  <span className="relative inline-flex h-1.5 w-1.5  bg-[#4ADE80]" />
                 </span>
                 {settings?.status ?? "Live"}
               </span>
-              <span className="text-[11.5px] text-white/50">{settings?.event_date}</span>
+              <span className="text-[11.5px] text-[#9AA8C7]">{settings?.event_date}</span>
             </div>
 
             <h1 className="headline text-[clamp(3rem,12vw,9rem)] mt-4 text-white">
               Laureate{" "}
-              <span className="bg-gradient-to-r from-indigo-300 via-violet-300 to-cyan-300 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#7DA2FF] via-[#A78BFA] to-[#22D3EE] bg-clip-text text-transparent">
                 2K26
               </span>
             </h1>
-            <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-white/60 text-pretty">
+            <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-[#B9C4E0] text-pretty">
               {settings?.college} — {settings?.tagline}. {formatNumber(total)} graduates across{" "}
               {deptStats.length} departments.
             </p>
@@ -86,8 +86,8 @@ export default async function Dashboard() {
           <div className="flex shrink-0 items-center gap-5">
             <CompletionRing value={completion} />
             <div>
-              <p className="text-[13px] font-medium text-white/85">Ceremony complete</p>
-              <p className="mt-0.5 text-[12px] text-white/50">
+              <p className="text-[13px] font-medium text-[#E8EDF9]">Ceremony complete</p>
+              <p className="mt-0.5 text-[12px] text-[#9AA8C7]">
                 {formatNumber(stats?.certificate_done ?? 0)} of {formatNumber(total)} graduates
               </p>
               <Link href="/reports">
