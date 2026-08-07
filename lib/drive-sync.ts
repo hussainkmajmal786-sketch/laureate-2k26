@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
-import { ensureEventFolders, isDriveConfigured, uploadPhoto } from "./drive";
+import { ensureEventFolders, uploadPhoto } from "./drive";
+import { canUploadToDrive } from "./google-oauth";
 
 export interface SyncResult {
   ok: boolean;
@@ -36,8 +37,12 @@ export async function syncPhotosToDrive(batchSize = 25): Promise<SyncResult> {
     details: [],
   };
 
-  if (!isDriveConfigured()) {
-    return { ...empty, error: "Google Drive is not connected. Add credentials in Settings." };
+  if (!(await canUploadToDrive())) {
+    return {
+      ...empty,
+      error:
+        "No Google account is connected. A service account cannot store files in Drive, so connect an account in Settings first.",
+    };
   }
 
   const supabase = await createClient();

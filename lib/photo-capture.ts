@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import type { MediaCategory } from "./supabase/types";
-import { ensureEventFolders, isDriveConfigured, uploadPhoto } from "./drive";
+import { ensureEventFolders, uploadPhoto } from "./drive";
+import { canUploadToDrive } from "./google-oauth";
 
 /**
  * Stores a single photo captured at a station against one graduate.
@@ -107,7 +108,7 @@ async function mirrorToDrive(
   buffer: Buffer,
   mimeType: string,
 ) {
-  if (!isDriveConfigured()) return;
+  if (!(await canUploadToDrive())) return;
 
   try {
     const folders = await ensureEventFolders();
