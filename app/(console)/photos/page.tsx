@@ -4,6 +4,8 @@ import { PhotoImporter } from "./importer";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentVolunteer } from "@/lib/supabase/server";
 import { isDriveConfigured } from "@/lib/drive";
+import { getDriveSyncStatus } from "@/lib/drive-sync";
+import { DriveSyncPanel } from "./drive-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,8 @@ export default async function PhotosPage() {
       supabase.from("event_settings").select("*").eq("id", 1).maybeSingle(),
       getCurrentVolunteer(),
     ]);
+
+  const syncStatus = await getDriveSyncStatus();
 
   const { count: onDrive } = await supabase
     .from("media")
@@ -40,6 +44,14 @@ export default async function PhotosPage() {
           tone={isDriveConfigured() ? "ok" : "warn"}
         />
       </div>
+
+      <DriveSyncPanel
+        stored={syncStatus.stored}
+        synced={syncStatus.synced}
+        driveConfigured={isDriveConfigured()}
+        rootFolderId={process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID} />
+
+      <div className="mt-4" />
 
       <PhotoImporter
         driveConfigured={isDriveConfigured()}

@@ -142,13 +142,14 @@ export async function uploadPhoto(input: {
 }): Promise<UploadedFile> {
   const drive = getClient();
 
-  const parents = [input.folderId];
-  if (input.alsoInFolderId && input.alsoInFolderId !== input.folderId) {
-    parents.push(input.alsoInFolderId);
-  }
-
+  /*
+   * Create with exactly one parent. Drive no longer accepts multiple
+   * parents at creation — it rejects the call with "Increasing the number
+   * of parents is not allowed" — so the archive folder is added afterwards
+   * with addParents, which is still supported.
+   */
   const created = await drive.files.create({
-    requestBody: { name: input.filename, parents },
+    requestBody: { name: input.filename, parents: [input.folderId] },
     media: { mimeType: input.mimeType, body: Readable.from(input.buffer) },
     fields: "id, webViewLink, thumbnailLink",
     supportsAllDrives: true,
@@ -156,6 +157,20 @@ export async function uploadPhoto(input: {
 
   const id = created.data.id;
   if (!id) throw new Error("Drive did not return a file id");
+
+  if (input.alsoInFolderId && input.alsoInFolderId !== input.folderId) {
+    try {
+      await drive.files.update({
+        fileId: id,
+        addParents: input.alsoInFolderId,
+        fields: "id",
+        supportsAllDrives: true,
+      });
+    } catch {
+      // The photo is filed in its category folder either way; a missing
+      // archive link is not worth failing the upload over.
+    }
+  }
 
   await drive.permissions.create({
     fileId: id,
