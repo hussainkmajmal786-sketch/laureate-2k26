@@ -61,10 +61,16 @@ async function ensureFolder(
   ];
   if (parentId) clauses.push(`'${parentId}' in parents`);
 
+  /*
+   * corpora "allDrives" is needed for Shared Drives: without it the search
+   * only covers the service account's own (empty) Drive, so an existing
+   * folder inside a Shared Drive is not found and a duplicate is created.
+   */
   const existing = await drive.files.list({
     q: clauses.join(" and "),
     fields: "files(id, name)",
     pageSize: 1,
+    corpora: "allDrives",
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
   });
@@ -204,9 +210,25 @@ export async function testDriveConnection(): Promise<{
     if (rootId) {
       const meta = await drive.files.get({
         fileId: rootId,
-        fields: "name",
+        fields: "name, driveId",
         supportsAllDrives: true,
       });
+
+      /*
+       * Reachability is not enough. A service account has zero storage
+       * quota, so it can only write into a Shared Drive, which owns its
+       * own files. A shared personal folder accepts the share but refuses
+       * every upload — worth saying plainly rather than failing later.
+       */
+      if (!meta.data.driveId) {
+        return {
+          ok: false,
+          rootName: meta.data.name ?? undefined,
+          error:
+            "That folder is in a personal My Drive. A service account has no storage quota there, so photo uploads will be refused. Use a Shared Drive instead.",
+        };
+      }
+
       return { ok: true, rootName: meta.data.name ?? undefined };
     }
 
