@@ -121,8 +121,17 @@ export function StudentQrCard({
         <p className="mt-3 font-mono text-[15px] font-medium tracking-[0.18em] text-ink">
           {student.reg_no}
         </p>
-        <p className="mt-1.5 max-w-[240px] text-center text-[11px] leading-snug text-ink-3">
+        {/*
+          Two captions, one shown at a time. The full sentence has room on
+          screen; at 93mm it wraps to a third line and pushes the footer off
+          the card, so print gets a version that says the same thing shorter
+          rather than a clamped sentence cut mid-word.
+        */}
+        <p className="qr-caption-screen mt-1.5 max-w-[240px] text-center text-[11px] leading-snug text-ink-3">
           Scan to open your ceremony hub — stage status, booth queue and every photo of you today.
+        </p>
+        <p className="qr-caption-print mt-1.5 max-w-[240px] text-center text-[11px] leading-snug text-ink-3">
+          Scan for your stage status, booth queue and photos.
         </p>
 
         {!compact && (
