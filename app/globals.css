@@ -289,7 +289,12 @@
    Four invitation cards per A4 sheet at near-A6 proportions, so a
    stack can be guillotined on the cut guides. */
 @media print {
-  @page { size: A4 portrait; margin: 8.5mm; }
+  /*
+   * @page margins cannot vary per element, so the sheet uses the tighter
+   * margin the 12-up grid needs and the 4-up grid pads itself back to
+   * where it was.
+   */
+  @page { size: A4 portrait; margin: 6mm; }
 
   /*
    * Pin the palette to its paper values regardless of the theme the
@@ -333,7 +338,78 @@
     justify-content: center;
     gap: 6mm 3mm;
     align-content: start;
+    /* Back to the 8.5mm the invitation layout was measured against. */
+    padding: 2.5mm;
   }
+
+  .qr-print-grid[data-density="compact"] { padding: 0; }
+
+  /* ── Compact: 12 per sheet, 3 across by 4 down ──────────────
+     64x68mm with 2mm gaps needs 196x278mm, which fits the 198x285mm
+     printable area at a 6mm margin with 2mm and 7mm to spare. The
+     quote and the caption are dropped rather than shrunk to nothing -
+     at this size the card is a scannable token carrying a name, not
+     an invitation. */
+  .qr-print-grid[data-density="compact"] {
+    grid-template-columns: repeat(3, 64mm);
+    gap: 2mm;
+  }
+
+  .qr-print-grid[data-density="compact"] .qr-print-card {
+    width: 64mm;
+    height: 68mm;
+  }
+
+  /* Quote block and the scan caption. */
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(3),
+  .qr-print-grid[data-density="compact"] .qr-caption-print {
+    display: none !important;
+  }
+
+  .qr-print-grid[data-density="compact"] .qr-print-card img {
+    width: 33mm !important;
+    height: 33mm !important;
+  }
+
+  .qr-print-grid[data-density="compact"] .qr-print-card .headline {
+    font-size: 13px;
+    line-height: 1.05;
+  }
+
+  /* The masthead's second line is the college; it does not fit. */
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(1) {
+    padding: 4px 8px;
+  }
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(1) p {
+    display: none;
+  }
+
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(2) {
+    padding: 6px 8px 2px;
+  }
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(2) p {
+    font-size: 7px;
+    margin-top: 2px;
+  }
+
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(4) {
+    padding: 0 6px 4px;
+  }
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(4) > p {
+    font-size: 9px;
+    margin-top: 3px;
+    letter-spacing: 0.1em;
+  }
+
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(5) {
+    padding: 3px 6px;
+  }
+  .qr-print-grid[data-density="compact"] .qr-print-card > div:nth-child(5) p {
+    font-size: 6px;
+  }
+
+  /* Cut guides would collide at 2mm gaps. */
+  .qr-print-grid[data-density="compact"] .qr-print-card::after { display: none; }
 
   .qr-print-card {
     break-inside: avoid;

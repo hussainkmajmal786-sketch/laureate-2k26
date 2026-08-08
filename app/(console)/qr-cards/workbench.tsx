@@ -10,6 +10,9 @@ import { StudentQrCard } from "@/components/qr-card";
 import { createClient } from "@/lib/supabase/client";
 import type { DepartmentRow, StudentRow } from "@/lib/supabase/types";
 
+/** How many passes go on one A4 sheet when printing. */
+type Density = "invitation" | "compact";
+
 export function QrCardsWorkbench({
   initialStudents,
   departments,
@@ -21,6 +24,12 @@ export function QrCardsWorkbench({
   const [imported, setImported] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [filter, setFilter] = React.useState("");
+  /*
+   * Invitation cards are handed out; compact ones are for a bulk run
+   * where the QR is all that matters. The choice only affects printing,
+   * so it lives on the print grid rather than the card component.
+   */
+  const [density, setDensity] = React.useState<Density>("invitation");
   const [pasted, setPasted] = React.useState("");
   const { push } = useToast();
   const supabase = React.useMemo(() => createClient(), []);
@@ -148,6 +157,16 @@ export function QrCardsWorkbench({
                 <Printer className="h-4 w-4" />
                 Print {visible.length} pass{visible.length === 1 ? "" : "es"}
               </Button>
+              <Select
+                value={density}
+                onChange={(v) => setDensity(v as Density)}
+                aria-label="Cards per sheet"
+                className="sm:w-56"
+                options={[
+                  { value: "invitation", label: "4 per sheet — invitation" },
+                  { value: "compact", label: "12 per sheet — compact" },
+                ]}
+              />
               <Select value="all"
                 onChange={loadDepartment} aria-label="Load a whole department"
                 className="sm:w-56"
@@ -176,7 +195,10 @@ export function QrCardsWorkbench({
         </div>
       </div>
 
-      <div className="qr-print-grid mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div
+        data-density={density}
+        className="qr-print-grid mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      >
         {visible.map((student) => (
           <StudentQrCard key={student.id} student={student} />
         ))}
