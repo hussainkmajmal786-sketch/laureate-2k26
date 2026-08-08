@@ -283,10 +283,25 @@
 }
 
 /* ── Bulk QR invitation printing ─────────────────────────────
-   Two cards per A4 page at roughly A6 invitation size (105x148mm),
-   so a stack can be guillotined straight down the middle. */
+   Four invitation cards per A4 sheet at near-A6 proportions, so a
+   stack can be guillotined on the cut guides. */
 @media print {
-  @page { size: A4 portrait; margin: 10mm; }
+  @page { size: A4 portrait; margin: 8.5mm; }
+
+  /*
+   * Pin the palette to its paper values regardless of the theme the
+   * console happens to be in. Without this, printing from dark mode
+   * resolves --ink to near-white and the graduate's name comes out at
+   * 1.02:1 against the sheet — invisible.
+   */
+  :root, :root[data-theme="dark"], .dark {
+    --paper: 255 255 255;
+    --paper-2: 248 246 240;
+    --paper-3: 238 235 228;
+    --ink: 20 16 14;
+    --ink-2: 74 65 58;
+    --ink-3: 110 99 90;
+  }
 
   body {
     background: #fff !important;
@@ -299,10 +314,21 @@
   aside, header, nav, footer,
   .qr-print-toolbar { display: none !important; }
 
+  /*
+   * Four invitation cards per A4 sheet, 2x2.
+   *
+   * 93x132mm holds A6 proportions (1.419 vs A6's 1.414) while leaving
+   * 4mm horizontal and 10mm vertical slack inside the printable area.
+   * True A6 is 105x148mm, which cannot go two-up on A4 — two 105mm cards
+   * need the full 210mm sheet with no margin left for the printer.
+   * The slack matters: at zero tolerance any driver rounding spills a
+   * card onto a second page.
+   */
   .qr-print-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6mm;
+    grid-template-columns: repeat(2, 93mm);
+    justify-content: center;
+    gap: 6mm 3mm;
     align-content: start;
   }
 
@@ -310,13 +336,38 @@
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none !important;
-    /* A6-ish: two across, two down, four per A4 sheet. */
+    width: 93mm;
     height: 132mm;
     border: 1.5pt solid #14100e !important;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
+
+  /*
+   * The hub URL is ~78 characters, which at error level M is a 37-module
+   * QR. 42mm gives 0.93mm per module — comfortably above the ~0.5mm a
+   * phone camera needs, so it still scans from a held card.
+   */
+  .qr-print-card img {
+    width: 42mm !important;
+    height: 42mm !important;
+  }
+
+  /*
+   * Screen padding is generous for a 260px-wide card; at 93mm the stack
+   * runs ~3mm past the trim and overflow:hidden would silently clip the
+   * footer. Tightening the vertical rhythm buys that back without
+   * shrinking the name or the QR.
+   */
+  .qr-print-card .headline { font-size: 25px; }
+  .qr-print-card > div:nth-child(2) { padding-top: 12px; padding-bottom: 8px; }
+  .qr-print-card > div:nth-child(3) { margin-bottom: 12px; padding-top: 9px; padding-bottom: 9px; }
+  .qr-print-card > div:nth-child(4) { padding-bottom: 10px; }
+
+  /* Screen-only affordances have no meaning on paper. */
+  .qr-print-card a,
+  .qr-print-card button { display: none !important; }
 
   /* Force the colour blocks to actually print. */
   .qr-print-card * {
