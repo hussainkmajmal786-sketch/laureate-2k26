@@ -45,3 +45,7 @@ next-env.d.ts
 *.xlsx
 *.xls
 /supabase/migrations/*_real_cohort.sql
+
+# Holds a live Google refresh token between the consent step and the
+# database write. Deleted automatically once stored.
+.google-refresh-token.json

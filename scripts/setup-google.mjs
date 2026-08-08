@@ -125,7 +125,7 @@ const url = oauth.generateAuthUrl({
 
 console.log(`
   Now open this link and sign in as the account that should own the
-  photos (mediateam@ce-kgr.org). If Google warns the app is unverified,
+  photos. If Google warns the app is unverified,
   choose Advanced -> Go to Laureate.
 
   ${url}
