@@ -1,6 +1,8 @@
 "use client";
 
-import { MonitorPlay } from "lucide-react";
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { ExternalLink, MonitorPlay } from "lucide-react";
 
 /**
  * Embeds the ceremony live stream.
@@ -23,7 +25,8 @@ function toEmbedUrl(raw: string): string | null {
         return v ? `https://www.youtube.com/embed/${v}` : null;
       }
       if (url.pathname.startsWith("/live/")) {
-        return `https://www.youtube.com/embed/${url.pathname.split("/")[2]}`;
+        const id = url.pathname.split("/")[2];
+        return id ? `https://www.youtube.com/embed/${id}` : null;
       }
       if (url.pathname.startsWith("/embed/")) return url.toString();
       return null;
@@ -41,6 +44,22 @@ function toEmbedUrl(raw: string): string | null {
 
 export function StreamPlayer({ url, live }: { url: string | null; live: boolean }) {
   const embed = url ? toEmbedUrl(url) : null;
+  const router = useRouter();
+
+  /*
+   * Graduates open their hub from a printed card, often well before the
+   * ceremony starts. Without this the page would sit on "STREAM NOT
+   * STARTED" until they thought to reload, so poll until a stream
+   * appears - then stop, because reloading around a playing iframe would
+   * interrupt it.
+   */
+  React.useEffect(() => {
+    if (embed) return;
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") router.refresh();
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [embed, router]);
 
   return (
     <section className="mt-4 overflow-hidden bg-paper rule drop-2">
@@ -57,15 +76,31 @@ export function StreamPlayer({ url, live }: { url: string | null; live: boolean 
       </div>
 
       {embed ? (
-        <div className="relative aspect-video bg-ink-black">
-          <iframe
-            src={embed}
-            title="Laureate 2K26 live ceremony stream"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-            allowFullScreen
-            className="absolute inset-0 h-full w-full"
-          />
-        </div>
+        <>
+          <div className="relative aspect-video bg-ink-black">
+            <iframe
+              src={embed}
+              title="Laureate 2K26 live ceremony stream"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 h-full w-full"
+            />
+          </div>
+          {/*
+            Embeds are blocked inside some in-app browsers and on networks
+            that filter iframes, which would leave a black box with no way
+            out on the one day it matters.
+          */}
+          <a
+            href={url ?? "#"}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-1.5 rule-t px-4 py-2 text-[11px] text-ink-2 underline-offset-2 hover:underline"
+          >
+            <ExternalLink className="h-3.5 w-3.5" strokeWidth={2.4} />
+            Video not playing? Open it on YouTube
+          </a>
+        </>
       ) : (
         <div className="grid min-h-48 place-items-center bg-ink-black p-8 text-center">
           <div>
