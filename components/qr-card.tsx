@@ -30,12 +30,23 @@ export function StudentQrCard({
   compact?: boolean;
 }) {
   const [src, setSrc] = React.useState("");
-  const path = `/hub/${student.hub_token}`;
+  /*
+   * The pass carries the register number, which is what a graduate can
+   * read off the card and type in. /<regno> redirects to the hub.
+   */
+  const path = `/${student.reg_no}`;
   const accent = deptColor(student.dept_code);
   const quote = quoteFor(student.reg_no);
 
   React.useEffect(() => {
-    const url = `${window.location.origin}${path}`;
+    /*
+     * Never window.location.origin: cards are printed from the console,
+     * usually on localhost, and that origin would be baked into 172
+     * pieces of paper that then resolve to nothing on a graduate's
+     * phone. The configured site URL is the only correct answer.
+     */
+    const base = (process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin).replace(/\/+$/, "");
+    const url = `${base}${path}`;
     QRCode.toDataURL(url, {
       margin: 1,
       width: compact ? 160 : 260,

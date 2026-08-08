@@ -4,7 +4,16 @@ import { NextResponse, type NextRequest } from "next/server";
 /** Routes reachable without signing in. The TV board is deliberately open. */
 const PUBLIC_ROUTES = ["/", "/login", "/signup", "/display", "/hub", "/booth-kiosk", "/auth"];
 
+/*
+ * A bare register number is the printed pass's own address, so it has to
+ * work for a graduate who has never signed in. Matched by shape rather
+ * than added to PUBLIC_ROUTES so it cannot widen into a prefix match on
+ * anything else.
+ */
+const REG_NO_PATH = /^\/[A-Za-z]{2,6}\d{2}[A-Za-z]{2}\d{3}$/;
+
 function isPublic(pathname: string) {
+  if (REG_NO_PATH.test(pathname)) return true;
   return PUBLIC_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );

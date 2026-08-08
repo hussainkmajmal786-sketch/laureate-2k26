@@ -610,6 +610,11 @@ export type Database = {
         Args: { p_token: string }
         Returns: Database["public"]["Tables"]["students"]["Row"][]
       }
+      /* Maps a printed register number to its hub token. Token only. */
+      hub_token_for_reg_no: {
+        Args: { p_reg_no: string }
+        Returns: string
+      }
       redeem_lunch: {
         Args: { p_student_id: string }
         Returns: Database["public"]["Tables"]["students"]["Row"]
