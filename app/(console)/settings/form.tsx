@@ -220,6 +220,51 @@ export function SettingsForm({
           </div>
         </BlockPanel>
 
+        {/*
+          The player on every graduate's hub reads these two fields. Paste
+          any normal YouTube or Facebook link - the hub converts it to an
+          embed itself, so nobody has to hunt for an "embed URL".
+        */}
+        <BlockPanel
+          label="Live stream"
+          tone={form.stream_live ? "ok" : "ink"}
+          className="scroll-mt-20"
+          action={
+            <Badge tone={form.stream_live ? "ok" : "warn"} size="sm" dot>
+              {form.stream_live ? "Live" : "Off"}
+            </Badge>
+          }
+        >
+          <div id="stream" className="space-y-4 p-5">
+            <Field
+              label="Stream link"
+              hint="YouTube or Facebook. Paste the normal share link — /live/, /watch?v= and youtu.be all work."
+            >
+              <Input
+                type="url"
+                inputMode="url"
+                placeholder="https://www.youtube.com/live/…"
+                value={form.stream_url}
+                onChange={(e) => patch("stream_url", e.target.value)}
+                disabled={!isAdmin}
+              />
+            </Field>
+
+            <Row
+              label="Show the stream on graduate hubs"
+              hint="Turn on when the broadcast starts. Every hub picks it up within a minute."
+              checked={form.stream_live}
+              onChange={() => patch("stream_live", !form.stream_live)}
+              disabled={!isAdmin}
+            />
+
+            <p className="text-[12px] leading-relaxed text-ink-3">
+              The stream must be public or unlisted, with embedding allowed in YouTube Studio — a
+              private stream shows a black player to everyone but you.
+            </p>
+          </div>
+        </BlockPanel>
+
         {/* Signing in as a real user is what makes uploads possible. */}
         <BlockPanel
           label="Google account"
