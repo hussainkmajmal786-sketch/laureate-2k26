@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
 import type { MediaCategory } from "./supabase/types";
-import { ensureEventFolders, uploadPhoto } from "./drive";
+import { ensureEventFolders, ensureStudentFolder, uploadPhoto } from "./drive";
 import { canUploadToDrive } from "./google-oauth";
 
 /**
@@ -86,7 +86,10 @@ export async function uploadStudentPhoto(formData: FormData): Promise<{
    * later by "Sync to Drive" on the Photos screen, which retries whatever is
    * still missing a drive_file_id.
    */
-  void mirrorToDrive(mediaRow!.id, path, category, buffer, file.type).catch(() => undefined);
+  void mirrorToDrive(mediaRow!.id, path, category, buffer, file.type, {
+    name: student.name,
+    regNo: student.reg_no,
+  }).catch(() => undefined);
 
   revalidatePath("/gallery");
   revalidatePath("/booth");
@@ -107,23 +110,43 @@ async function mirrorToDrive(
   category: MediaCategory,
   buffer: Buffer,
   mimeType: string,
+  student: { name: string; regNo: string },
 ) {
   if (!(await canUploadToDrive())) return;
 
   try {
     const folders = await ensureEventFolders();
-    const target =
+
+    const station =
       category === "Stage" ? folders.stage
         : category === "Booth" ? folders.booth
         : category === "Group" ? folders.group
         : folders.candid;
+
+    /*
+     * The graduate's own folder is the primary home — that is what makes
+     * the archive browsable by person in fifty years' time — and the
+     * station folder is the second copy, so Stage and Photo Booth still
+     * read as a run of the day. If the personal folder cannot be made,
+     * fall back to the station one: that costs filing, never the photo.
+     */
+    let target = station;
+    try {
+      target = await ensureStudentFolder({
+        name: student.name,
+        regNo: student.regNo,
+        parentId: folders.graduates,
+      });
+    } catch {
+      // Station folder stays the home.
+    }
 
     const uploaded = await uploadPhoto({
       buffer,
       filename: path.split("/").pop() ?? `${mediaId}.jpg`,
       mimeType: mimeType || "image/jpeg",
       folderId: target,
-      alsoInFolderId: folders.allMedia,
+      alsoInFolderId: target === station ? folders.allMedia : station,
     });
 
     const supabase = await createClient();

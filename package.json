@@ -10,7 +10,8 @@
     "lint": "eslint",
     "setup:google": "node --env-file=.env.local scripts/setup-google.mjs",
     "finish:google": "node --env-file=.env.local scripts/finish-google.mjs",
-    "store:google": "node --env-file=.env.local scripts/store-google.mjs"
+    "store:google": "node --env-file=.env.local scripts/store-google.mjs",
+    "verify:drive": "node --env-file=.env.local scripts/verify-drive-folders.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

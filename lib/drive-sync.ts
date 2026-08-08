@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "./supabase/server";
-import { ensureEventFolders, uploadPhoto } from "./drive";
+import { ensureEventFolders, ensureStudentFolder, uploadPhoto } from "./drive";
 import { canUploadToDrive } from "./google-oauth";
 
 export interface SyncResult {
@@ -52,7 +52,7 @@ export async function syncPhotosToDrive(batchSize = 25): Promise<SyncResult> {
   // Only photos that are in storage but not yet in Drive.
   const { data: pending, error } = await supabase
     .from("media")
-    .select("id, title, category, storage_path")
+    .select("id, title, category, storage_path, students(name, reg_no)")
     .not("storage_path", "is", null)
     .is("drive_file_id", null)
     .limit(batchSize);
@@ -84,18 +84,37 @@ export async function syncPhotosToDrive(batchSize = 25): Promise<SyncResult> {
 
       if (dlErr || !blob) throw new Error(dlErr?.message ?? "Could not read the stored file.");
 
-      const target =
+      const station =
         row.category === "Stage" ? folders.stage
           : row.category === "Booth" ? folders.booth
           : row.category === "Group" ? folders.group
           : folders.candid;
+
+      /*
+       * File under the graduate wherever we know who they are, matching
+       * what a live capture does. Group shots and anything with no linked
+       * student stay in their station folder.
+       */
+      const owner = Array.isArray(row.students) ? row.students[0] : row.students;
+      let target = station;
+      if (owner?.name && owner?.reg_no) {
+        try {
+          target = await ensureStudentFolder({
+            name: owner.name,
+            regNo: owner.reg_no,
+            parentId: folders.graduates,
+          });
+        } catch {
+          // Station folder stays the home.
+        }
+      }
 
       const uploaded = await uploadPhoto({
         buffer: Buffer.from(await blob.arrayBuffer()),
         filename: row.storage_path.split("/").pop() ?? `${row.id}.jpg`,
         mimeType: blob.type || "image/jpeg",
         folderId: target,
-        alsoInFolderId: folders.allMedia,
+        alsoInFolderId: target === station ? folders.allMedia : station,
       });
 
       await supabase

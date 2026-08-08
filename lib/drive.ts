@@ -24,6 +24,8 @@ export const FOLDERS = {
   booth: "Photo Booth",
   candid: "Candid",
   group: "Group",
+  /* One sub-folder per graduate, created on their first photo. */
+  graduates: "Graduates",
 } as const;
 
 /**
@@ -122,6 +124,7 @@ export interface DriveFolders {
   booth: string;
   candid: string;
   group: string;
+  graduates: string;
 }
 
 /**
@@ -136,15 +139,73 @@ export async function ensureEventFolders(rootFolderId?: string): Promise<DriveFo
   const parent = rootFolderId || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
 
   const root = await ensureFolder(drive, FOLDERS.root, parent);
-  const [allMedia, stage, booth, candid, group] = await Promise.all([
+  const [allMedia, stage, booth, candid, group, graduates] = await Promise.all([
     ensureFolder(drive, FOLDERS.allMedia, root),
     ensureFolder(drive, FOLDERS.stage, root),
     ensureFolder(drive, FOLDERS.booth, root),
     ensureFolder(drive, FOLDERS.candid, root),
     ensureFolder(drive, FOLDERS.group, root),
+    ensureFolder(drive, FOLDERS.graduates, root),
   ]);
 
-  return { root, allMedia, stage, booth, candid, group };
+  return { root, allMedia, stage, booth, candid, group, graduates };
+}
+
+/**
+ * The folder that holds one graduate's photos, created on first capture.
+ *
+ * Named "NAME (REGNO)" so the folder list reads alphabetically by name
+ * while staying unique - two graduates can share a name, but not a
+ * register number.
+ *
+ * Concurrency is the real hazard here. Several photos of the same
+ * graduate can be uploading at once, and ensureFolder is a list-then-
+ * create with no atomicity, so two callers can both miss and both
+ * create. Requests for the same graduate are therefore funnelled through
+ * one in-flight promise, and after creating we re-check for a duplicate
+ * that appeared in the gap and adopt the oldest.
+ */
+const folderInFlight = new Map<string, Promise<string>>();
+
+export async function ensureStudentFolder(input: {
+  name: string;
+  regNo: string;
+  parentId: string;
+}): Promise<string> {
+  const key = `${input.parentId}:${input.regNo}`;
+  const running = folderInFlight.get(key);
+  if (running) return running;
+
+  const task = (async () => {
+    const drive = await getWriteClient();
+    // Drive treats "/" as a path separator in some clients; strip it.
+    const safeName = `${input.name} (${input.regNo})`.replace(/[/\\]/g, "-").trim();
+    const id = await ensureFolder(drive, safeName, input.parentId);
+
+    /*
+     * If a concurrent run created a second folder with the same name,
+     * settle on the oldest so every caller agrees on one.
+     */
+    const dupes = await drive.files.list({
+      q: [
+        "mimeType = 'application/vnd.google-apps.folder'",
+        `name = '${safeName.replace(/'/g, "\\'")}'`,
+        `'${input.parentId}' in parents`,
+        "trashed = false",
+      ].join(" and "),
+      fields: "files(id, createdTime)",
+      orderBy: "createdTime",
+      pageSize: 2,
+      corpora: "allDrives",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+
+    return dupes.data.files?.[0]?.id ?? id;
+  })().finally(() => folderInFlight.delete(key));
+
+  folderInFlight.set(key, task);
+  return task;
 }
 
 export interface UploadedFile {
