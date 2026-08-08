@@ -63,21 +63,42 @@ if (!session.access_token) {
     const made = [];
 
     try {
-      // 1 - can we even write to the folder from the link?
-      const meta = await drive.files.get({
-        fileId: ROOT,
-        fields: "name, mimeType, capabilities(canAddChildren)",
-        supportsAllDrives: true,
-      });
-      check(
-        "the linked folder is reachable and writable",
-        meta.data.capabilities?.canAddChildren === true,
-        `"${meta.data.name}"`,
-      );
+      /*
+       * With the drive.file scope the app only ever sees files it created
+       * itself, so a pre-existing folder id is invisible no matter who
+       * owns it or how it is shared - Drive answers "File not found".
+       * An empty root is the normal setup: the tree is created fresh.
+       */
+      if (ROOT) {
+        const meta = await drive.files
+          .get({
+            fileId: ROOT,
+            fields: "name, capabilities(canAddChildren)",
+            supportsAllDrives: true,
+          })
+          .catch(() => null);
+
+        check(
+          "the configured root folder is reachable",
+          meta?.data.capabilities?.canAddChildren === true,
+          meta
+            ? `"${meta.data.name}"`
+            : "not visible under the drive.file scope — clear GOOGLE_DRIVE_ROOT_FOLDER_ID to let the app make its own",
+        );
+      } else {
+        check("root folder", true, "unset — the app creates its own tree");
+      }
 
       const mkFolder = async (name, parent) => {
+        const q = [
+          "mimeType='application/vnd.google-apps.folder'",
+          `name='${name.replace(/'/g, "\\'")}'`,
+          "trashed=false",
+          ...(parent ? [`'${parent}' in parents`] : []),
+        ].join(" and ");
+
         const found = await drive.files.list({
-          q: `mimeType='application/vnd.google-apps.folder' and name='${name.replace(/'/g, "\\'")}' and '${parent}' in parents and trashed=false`,
+          q,
           fields: "files(id)",
           pageSize: 1,
           corpora: "allDrives",
@@ -85,8 +106,13 @@ if (!session.access_token) {
           includeItemsFromAllDrives: true,
         });
         if (found.data.files?.[0]?.id) return found.data.files[0].id;
+
         const c = await drive.files.create({
-          requestBody: { name, mimeType: "application/vnd.google-apps.folder", parents: [parent] },
+          requestBody: {
+            name,
+            mimeType: "application/vnd.google-apps.folder",
+            ...(parent ? { parents: [parent] } : {}),
+          },
           fields: "id",
           supportsAllDrives: true,
         });
@@ -95,7 +121,7 @@ if (!session.access_token) {
       };
 
       // 2 - the event tree, as ensureEventFolders builds it
-      const event = await mkFolder("Laureate 2K26", ROOT);
+      const event = await mkFolder("Laureate 2K26", ROOT || undefined);
       const graduates = await mkFolder("Graduates", event);
       check("event tree exists under it", Boolean(graduates));
 

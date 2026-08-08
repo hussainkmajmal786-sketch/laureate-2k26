@@ -66,42 +66,79 @@ const [media] = await (
 ).json();
 console.log("2. DATABASE  linked to the graduate");
 
-// 3 — Drive, the same call the capture mirror makes.
-const drive = google.drive({
-  version: "v3",
-  auth: new google.auth.JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY.replace(/\\n/g, "\n"),
-    scopes: ["https://www.googleapis.com/auth/drive"],
-  }),
-});
+/*
+ * 3 — Drive, as the capture mirror actually does it.
+ *
+ * The connected user account, not the service account: a service account
+ * has no storage quota and cannot hold a file at all. Folders are
+ * created when missing, exactly like ensureEventFolders, because under
+ * the drive.file scope the app only ever sees what it made itself.
+ */
+const [oauthRow] = await (
+  await fetch(`${URL_}/rest/v1/google_oauth?select=refresh_token&id=eq.1`, { headers: H })
+).json();
 
-const findFolder = async (name, parent) => {
+if (!oauthRow?.refresh_token) {
+  console.log("3. DRIVE     SKIPPED — no Google account connected");
+  process.exitCode = 1;
+}
+
+const oauth = new google.auth.OAuth2(
+  process.env.GOOGLE_OAUTH_CLIENT_ID,
+  process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+);
+oauth.setCredentials({ refresh_token: oauthRow.refresh_token });
+const drive = google.drive({ version: "v3", auth: oauth });
+
+const ensureFolder = async (name, parent) => {
+  const q = [
+    "mimeType='application/vnd.google-apps.folder'",
+    `name='${name.replace(/'/g, "\\'")}'`,
+    "trashed=false",
+    ...(parent ? [`'${parent}' in parents`] : []),
+  ].join(" and ");
+
   const r = await drive.files.list({
-    q: `mimeType='application/vnd.google-apps.folder' and name='${name}' and '${parent}' in parents and trashed=false`,
+    q,
     fields: "files(id)",
+    pageSize: 1,
+    corpora: "allDrives",
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
   });
-  return r.data.files?.[0]?.id;
+  if (r.data.files?.[0]?.id) return r.data.files[0].id;
+
+  const c = await drive.files.create({
+    requestBody: {
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+      ...(parent ? { parents: [parent] } : {}),
+    },
+    fields: "id",
+    supportsAllDrives: true,
+  });
+  return c.data.id;
 };
 
-const root = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
-const event = await findFolder("Laureate 2K26", root);
-const booth = await findFolder("Photo Booth", event);
-const allMedia = await findFolder("All Media", event);
+const root = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || undefined;
+const event = await ensureFolder("Laureate 2K26", root);
+const booth = await ensureFolder("Photo Booth", event);
+const allMedia = await ensureFolder("All Media", event);
+// The graduate's own folder is where the photo primarily lives.
+const graduates = await ensureFolder("Graduates", event);
+const ownFolder = await ensureFolder(`${student.name} (${student.reg_no})`, graduates);
 
 let driveId = null;
 try {
   const created = await drive.files.create({
-    requestBody: { name: filename, parents: [booth] },
+    requestBody: { name: filename, parents: [ownFolder] },
     media: { mimeType: "image/jpeg", body: Readable.from(png) },
-    fields: "id, webViewLink",
+    fields: "id, webViewLink, parents",
     supportsAllDrives: true,
   });
   driveId = created.data.id;
-  // Drive rejects multiple parents at creation; add the archive folder after.
-  await drive.files.update({ fileId: driveId, addParents: allMedia, fields: "id", supportsAllDrives: true });
+  // Drive rejects multiple parents at creation; add the station folder after.
+  await drive.files.update({ fileId: driveId, addParents: booth, fields: "id", supportsAllDrives: true });
   await drive.permissions.create({
     fileId: driveId,
     requestBody: { role: "reader", type: "anyone" },
@@ -116,7 +153,12 @@ try {
       drive_thumb_url: `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`,
     }),
   });
-  console.log("3. DRIVE     uploaded to Photo Booth + All Media");
+  const filed = created.data.parents?.[0] === ownFolder;
+  console.log(
+    filed
+      ? `3. DRIVE     filed under "${student.name} (${student.reg_no})" + Photo Booth`
+      : "3. DRIVE     uploaded, but NOT in the graduate's folder",
+  );
 } catch (e) {
   console.log(`3. DRIVE     FAILED — ${e.message.slice(0, 90)}`);
 }
