@@ -3,7 +3,7 @@ import { StatTile } from "@/components/kpi-card";
 import { PhotoImporter } from "./importer";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentVolunteer } from "@/lib/supabase/server";
-import { isDriveConfigured } from "@/lib/drive";
+import { canUploadToDrive } from "@/lib/google-oauth";
 import { getDriveSyncStatus } from "@/lib/drive-sync";
 import { DriveSyncPanel } from "./drive-sync";
 
@@ -20,6 +20,16 @@ export default async function PhotosPage() {
     ]);
 
   const syncStatus = await getDriveSyncStatus();
+
+  /*
+   * "Connected" has to mean uploads will actually work, not merely that
+   * credentials exist in the environment. A service account satisfies
+   * isDriveConfigured() but has no storage quota and cannot hold a file,
+   * so the panel would promise a working archive that silently drops
+   * every photo. canUploadToDrive() checks for a stored OAuth token,
+   * which is the thing uploads really depend on.
+   */
+  const driveReady = await canUploadToDrive();
 
   const { count: onDrive } = await supabase
     .from("media")
@@ -39,22 +49,22 @@ export default async function PhotosPage() {
         <StatTile label="STAGE APPEARANCES" value={appearanceCount ?? 0} sub="Matchable windows" tone="pop" />
         <StatTile
           label="DRIVE"
-          value={isDriveConfigured() ? "READY" : "NOT SET"}
+          value={driveReady ? "READY" : "NOT SET"}
           sub={settings?.drive_root_folder ?? "Laureate 2K26"}
-          tone={isDriveConfigured() ? "ok" : "warn"}
+          tone={driveReady ? "ok" : "warn"}
         />
       </div>
 
       <DriveSyncPanel
         stored={syncStatus.stored}
         synced={syncStatus.synced}
-        driveConfigured={isDriveConfigured()}
+        driveConfigured={driveReady}
         rootFolderId={process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID} />
 
       <div className="mt-4" />
 
       <PhotoImporter
-        driveConfigured={isDriveConfigured()}
+        driveConfigured={driveReady}
         canImport={["admin", "media", "booth", "stage"].includes(me?.role ?? "")}
         appearances={appearanceCount ?? 0}
       />

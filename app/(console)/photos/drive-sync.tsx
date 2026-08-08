@@ -86,10 +86,17 @@ export function DriveSyncPanel({
         <p className="text-[12.5px] leading-relaxed text-ink-3">
           Photos copy into Drive automatically as they are captured. This retries anything that
           did not make it — a dropped connection at the booth, or photos taken before Drive was
-          connected. Files land in{" "}
-          <span className="font-medium text-ink-2">Laureate 2K26 / All Media</span> and their
-          category folder.
+          connected. Each photo is filed under{" "}
+          <span className="font-medium text-ink-2">Laureate 2K26 / Graduates / Name (Register no)</span>,
+          with a second copy in its station folder.
         </p>
+
+        {!driveConfigured && (
+          <p className="text-[12.5px] leading-relaxed text-warn">
+            No Google account is connected, so nothing can upload. Connect one in Settings →
+            Google account.
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={run} disabled={!driveConfigured || pending || outstanding === 0}>
